@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm --filter desktop dev)",
+      "Bash(pnpm --version)",
+      "Bash(python3 -c ' *)",
+      "Bash(pnpm add *)",
+      "Bash(git -C /Users/mgerguri/Desktop/DevBot/mg-teacher status)",
+      "Bash(git init *)",
+      "Bash(git remote *)",
+      "Bash(git add *)"
+    ]
+  }
+}
