@@ -188,6 +188,9 @@ export default function SubjectsPage() {
           isRowUsable={row => !!row.name}
           onImport={handleImport}
           onClose={() => setShowImport(false)}
+          templateFilename="subjects-template.xlsx"
+          templateHeaders={['name', 'code', 'description', 'teacher']}
+          templateExample={['Mathematics', 'MATH10', 'Algebra and geometry', 'teacher@example.com']}
         />
       )}
     </div>

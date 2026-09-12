@@ -160,6 +160,9 @@ export default function ClassesPage() {
           isRowUsable={row => !!row.name}
           onImport={handleImport}
           onClose={() => setShowImport(false)}
+          templateFilename="classes-template.xlsx"
+          templateHeaders={['name', 'gradeLevel', 'academicYear']}
+          templateExample={['10A', 'Grade 10', '2026-2027']}
         />
       )}
     </div>

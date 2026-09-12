@@ -107,6 +107,7 @@
     "addStudent": "Add student"
   },
   "bulkImport": {
+    "downloadTemplate": "↓ Download empty template",
     "dropzone": "Drop a CSV or Excel file here, or click to browse",
     "noValidRows": "No valid rows found — check that the file has a header row matching the expected columns.",
     "parseError": "Couldn't read that file. Make sure it's a valid CSV or Excel file.",
