@@ -131,7 +131,7 @@ export default function StudentsPage() {
           placeholder={t('students.searchPlaceholder')}
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-56"
+          className="h-9 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-56"
         />
         <span className="text-sm text-gray-400">
           {filtered.length} {t('students.student', { count: filtered.length })}

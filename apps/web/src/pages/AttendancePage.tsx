@@ -370,7 +370,7 @@ export default function AttendancePage() {
           <select
             value={classId}
             onChange={e => setClassId(e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="h-9 px-3 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             {classes.map(c => (
               <option key={c.id} value={c.id}>{c.name} · {c.gradeLevel}</option>
@@ -387,7 +387,7 @@ export default function AttendancePage() {
                 type="date"
                 value={date}
                 onChange={e => setDate(e.target.value)}
-                className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="h-9 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
@@ -398,7 +398,7 @@ export default function AttendancePage() {
                 <select
                   value={slotId}
                   onChange={e => setSlotId(e.target.value)}
-                  className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="h-9 px-3 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   {slots.map(s => {
                     const sub = subjects.get(s.subjectId)
@@ -428,7 +428,7 @@ export default function AttendancePage() {
                 type="date"
                 value={dateFrom}
                 onChange={e => setDateFrom(e.target.value)}
-                className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="h-9 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -437,7 +437,7 @@ export default function AttendancePage() {
                 type="date"
                 value={dateTo}
                 onChange={e => setDateTo(e.target.value)}
-                className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="h-9 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </>

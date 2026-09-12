@@ -431,10 +431,10 @@ export default function StudentProfilePage() {
         <div className="flex flex-wrap gap-2 mb-4">
           <input type="date" value={conductForm.date}
             onChange={e => setConductForm(f => ({ ...f, date: e.target.value }))}
-            className="px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            className="h-9 px-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
           <select value={conductForm.category}
             onChange={e => setConductForm(f => ({ ...f, category: e.target.value as LocalConductNote['category'] }))}
-            className="px-2 py-1.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            className="h-9 px-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="positive">{t('conduct.positive')}</option>
             <option value="neutral">{t('conduct.neutral')}</option>
             <option value="concern">{t('conduct.concern')}</option>
@@ -442,7 +442,7 @@ export default function StudentProfilePage() {
           <input value={conductForm.note} onChange={e => setConductForm(f => ({ ...f, note: e.target.value }))}
             onKeyDown={e => e.key === 'Enter' && addConductNote()}
             placeholder={t('conduct.notePlaceholder')}
-            className="flex-1 min-w-48 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            className="flex-1 min-w-48 h-9 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
           <button onClick={addConductNote}
             className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
             {t('conduct.add')}
@@ -483,10 +483,10 @@ export default function StudentProfilePage() {
         <div className="flex flex-wrap gap-2 mb-4">
           <input type="date" value={contactForm.date}
             onChange={e => setContactForm(f => ({ ...f, date: e.target.value }))}
-            className="px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            className="h-9 px-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
           <select value={contactForm.method}
             onChange={e => setContactForm(f => ({ ...f, method: e.target.value as LocalContactLog['method'] }))}
-            className="px-2 py-1.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            className="h-9 px-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="phone">{t('contactLog.phone')}</option>
             <option value="email">{t('contactLog.email')}</option>
             <option value="meeting">{t('contactLog.meeting')}</option>
@@ -494,11 +494,11 @@ export default function StudentProfilePage() {
           </select>
           <input value={contactForm.topic} onChange={e => setContactForm(f => ({ ...f, topic: e.target.value }))}
             placeholder={t('contactLog.topicPlaceholder')}
-            className="flex-1 min-w-32 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            className="flex-1 min-w-32 h-9 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
           <input value={contactForm.outcome} onChange={e => setContactForm(f => ({ ...f, outcome: e.target.value }))}
             onKeyDown={e => e.key === 'Enter' && addContactLog()}
             placeholder={t('contactLog.outcomePlaceholder')}
-            className="flex-1 min-w-32 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            className="flex-1 min-w-32 h-9 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
           <button onClick={addContactLog}
             className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
             {t('contactLog.add')}

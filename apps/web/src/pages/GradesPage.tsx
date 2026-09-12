@@ -112,7 +112,7 @@ export default function GradesPage() {
           <select
             value={classId}
             onChange={e => setClassId(e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            className="h-9 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
           >
             {classes.map(c => (
               <option key={c.id} value={c.id}>
@@ -132,7 +132,7 @@ export default function GradesPage() {
                 placeholder={t('grades.customTermPlaceholder')}
                 value={customTerm}
                 onChange={e => setCustomTerm(e.target.value)}
-                className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-40"
+                className="h-9 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-40"
               />
               <button
                 onClick={() => { setUseCustom(false); setCustomTerm('') }}
@@ -146,7 +146,7 @@ export default function GradesPage() {
               <select
                 value={term}
                 onChange={e => setTerm(e.target.value)}
-                className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                className="h-9 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               >
                 {TERM_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
               </select>

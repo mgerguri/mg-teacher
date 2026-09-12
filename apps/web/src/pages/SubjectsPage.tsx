@@ -109,7 +109,7 @@ export default function SubjectsPage() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder={t('subjects.searchPlaceholder')}
-          className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-52"
+          className="h-9 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-52"
         />
         <button
           onClick={() => setShowImport(true)}

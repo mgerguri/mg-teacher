@@ -291,7 +291,7 @@ export default function AssessmentsPage() {
         <select
           value={classId}
           onChange={e => { setClassId(e.target.value); setSubjectId('') }}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          className="h-9 border border-gray-300 rounded-lg px-3 text-sm"
         >
           <option value="">{t('assessments.selectClass')}</option>
           {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -299,7 +299,7 @@ export default function AssessmentsPage() {
         <select
           value={subjectId}
           onChange={e => setSubjectId(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          className="h-9 border border-gray-300 rounded-lg px-3 text-sm"
         >
           <option value="">{t('assessments.allSubjects')}</option>
           {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -405,7 +405,7 @@ export default function AssessmentsPage() {
                 <select
                   value={form.studentId}
                   onChange={e => setForm(f => ({ ...f, studentId: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  className="w-full h-9 border border-gray-300 rounded-lg px-3 text-sm"
                 >
                   <option value="">—</option>
                   {classStudents.map(s => (
@@ -420,7 +420,7 @@ export default function AssessmentsPage() {
                 <select
                   value={form.subjectId}
                   onChange={e => setForm(f => ({ ...f, subjectId: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  className="w-full h-9 border border-gray-300 rounded-lg px-3 text-sm"
                 >
                   <option value="">—</option>
                   {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -435,7 +435,7 @@ export default function AssessmentsPage() {
                   value={form.title}
                   onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                   placeholder={t('assessments.titlePlaceholder')}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  className="w-full h-9 border border-gray-300 rounded-lg px-3 text-sm"
                 />
               </div>
 
@@ -446,7 +446,7 @@ export default function AssessmentsPage() {
                   <select
                     value={form.type}
                     onChange={e => setForm(f => ({ ...f, type: e.target.value as AssessmentType }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    className="w-full h-9 border border-gray-300 rounded-lg px-3 text-sm"
                   >
                     {(['quiz','test','exam','homework','other'] as AssessmentType[]).map(t2 => (
                       <option key={t2} value={t2}>{t(`assessments.types.${t2}`)}</option>
@@ -459,7 +459,7 @@ export default function AssessmentsPage() {
                     type="date"
                     value={form.date}
                     onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    className="w-full h-9 border border-gray-300 rounded-lg px-3 text-sm"
                   />
                 </div>
               </div>
@@ -473,7 +473,7 @@ export default function AssessmentsPage() {
                     min="0"
                     value={form.score}
                     onChange={e => setForm(f => ({ ...f, score: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    className="w-full h-9 border border-gray-300 rounded-lg px-3 text-sm"
                   />
                 </div>
                 <div className="flex-1">
@@ -483,7 +483,7 @@ export default function AssessmentsPage() {
                     min="1"
                     value={form.maxScore}
                     onChange={e => setForm(f => ({ ...f, maxScore: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    className="w-full h-9 border border-gray-300 rounded-lg px-3 text-sm"
                   />
                 </div>
               </div>

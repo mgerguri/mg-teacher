@@ -154,7 +154,7 @@ export default function SchedulePage() {
         <select
           value={selectedId}
           onChange={e => setSelectedId(e.target.value)}
-          className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="h-9 px-3 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="">{perspective === 'class' ? t('schedule.selectClass') : t('schedule.selectTeacher')}</option>
           {selectorOptions.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
