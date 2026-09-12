@@ -1,0 +1,52 @@
+name: Build desktop app
+
+# Builds the Tauri desktop app for macOS and Windows. Each OS produces its
+# own native installer — there is no single cross-platform artifact, so this
+# runs as a matrix with one job per target OS.
+on:
+  push:
+    branches: [desktop-main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.8.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri -> target
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build desktop app
+        run: pnpm build:desktop
+
+      - name: Upload installer(s)
+        uses: actions/upload-artifact@v4
+        with:
+          name: mg-teacher-desktop-${{ matrix.os }}
+          path: |
+            apps/desktop/src-tauri/target/release/bundle/**/*.dmg
+            apps/desktop/src-tauri/target/release/bundle/**/*.app
+            apps/desktop/src-tauri/target/release/bundle/**/*.msi
+            apps/desktop/src-tauri/target/release/bundle/**/*.exe
+          if-no-files-found: error
