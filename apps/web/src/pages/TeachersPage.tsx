@@ -99,14 +99,14 @@ function TeacherModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('teacherModal.firstName')} *</label>
               <input
                 required value={form.firstName} onChange={e => set('firstName', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('teacherModal.lastName')} *</label>
               <input
                 required value={form.lastName} onChange={e => set('lastName', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -117,7 +117,7 @@ function TeacherModal({
               required type="email" value={form.email}
               onChange={e => set('email', e.target.value)}
               disabled={isEdit}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400"
+              className="w-full h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400"
             />
           </div>
 
@@ -132,7 +132,7 @@ function TeacherModal({
               value={form.password}
               onChange={e => set('password', e.target.value)}
               placeholder={isEdit ? t('teacherModal.leaveBlank') : ''}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
@@ -141,7 +141,7 @@ function TeacherModal({
             <select
               value={form.role}
               onChange={e => set('role', e.target.value as Role)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full h-9 px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="teacher">{t('teacherModal.roleTeacher')}</option>
               <option value="admin">{t('teacherModal.roleAdmin')}</option>

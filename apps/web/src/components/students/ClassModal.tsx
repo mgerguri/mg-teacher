@@ -57,7 +57,7 @@ export default function ClassModal({ cls, onSave, onDelete, onClose }: Props) {
               value={form.name}
               onChange={e => set('name', e.target.value)}
               placeholder={t('classModal.classNamePlaceholder')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
@@ -68,7 +68,7 @@ export default function ClassModal({ cls, onSave, onDelete, onClose }: Props) {
               value={form.gradeLevel}
               onChange={e => set('gradeLevel', e.target.value)}
               placeholder={t('classModal.gradeLevelPlaceholder')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
@@ -77,7 +77,7 @@ export default function ClassModal({ cls, onSave, onDelete, onClose }: Props) {
             <select
               value={form.academicYear}
               onChange={e => set('academicYear', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {YEAR_OPTIONS.map(y => <option key={y} value={y}>{y}</option>)}
             </select>

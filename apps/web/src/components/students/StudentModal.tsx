@@ -57,7 +57,7 @@ export default function StudentModal({ student, classes, defaultClassId, onSave,
         value={form[key]}
         onChange={e => set(key, e.target.value)}
         placeholder={opts?.placeholder}
-        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full h-9 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
     </div>
   )
@@ -93,7 +93,7 @@ export default function StudentModal({ student, classes, defaultClassId, onSave,
                 <select
                   value={form.classId}
                   onChange={e => set('classId', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full h-9 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">{t('studentModal.noClass')}</option>
                   {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}

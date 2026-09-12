@@ -66,7 +66,7 @@ export default function SubjectModal({ subject, teachers, onSave, onDelete, onCl
                 value={form.name}
                 onChange={e => set('name', e.target.value)}
                 placeholder={t('subjectModal.namePlaceholder')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -75,7 +75,7 @@ export default function SubjectModal({ subject, teachers, onSave, onDelete, onCl
                 value={form.code}
                 onChange={e => set('code', e.target.value)}
                 placeholder={t('subjectModal.codePlaceholder')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -83,7 +83,7 @@ export default function SubjectModal({ subject, teachers, onSave, onDelete, onCl
               <select
                 value={form.teacherId}
                 onChange={e => set('teacherId', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full h-9 px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">{t('subjectModal.noTeacher')}</option>
                 {teachers.map(te => (
