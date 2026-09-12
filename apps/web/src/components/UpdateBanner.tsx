@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { checkForUpdate, RELEASES_URL, UpdateCheckResult } from '../lib/update-check'
+import { checkForUpdate, getDownloadUrlForCurrentOs, UpdateCheckResult } from '../lib/update-check'
 
 const DISMISSED_KEY = 'mg_teacher_update_dismissed_version'
 
@@ -26,9 +26,9 @@ export default function UpdateBanner() {
 
   if (!update) return null
 
-  async function openReleases() {
+  async function downloadUpdate() {
     const { open } = await import('@tauri-apps/api/shell')
-    await open(RELEASES_URL)
+    await open(getDownloadUrlForCurrentOs())
   }
 
   function dismiss() {
@@ -39,7 +39,7 @@ export default function UpdateBanner() {
   return (
     <div className="bg-blue-600 text-white text-sm px-4 py-2 flex items-center justify-center gap-3">
       <span>{t('update.available', { version: update.latestVersion })}</span>
-      <button onClick={openReleases} className="underline font-medium hover:no-underline">
+      <button onClick={downloadUpdate} className="underline font-medium hover:no-underline">
         {t('update.download')}
       </button>
       <button onClick={dismiss} className="text-blue-100 hover:text-white leading-none" aria-label={t('update.dismiss')}>

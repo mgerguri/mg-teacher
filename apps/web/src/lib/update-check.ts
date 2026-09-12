@@ -7,8 +7,19 @@
 const CONFIG_URL =
   'https://raw.githubusercontent.com/mgerguri/mg-teacher/desktop-main/apps/desktop/src-tauri/tauri.conf.json'
 
-export const RELEASES_URL =
-  'https://github.com/mgerguri/mg-teacher/actions/workflows/build-desktop.yml'
+// The `release` job in build-desktop.yml publishes each build to a GitHub
+// Release under these exact filenames, so `releases/latest/download/<name>`
+// always resolves to the newest installer — no login required, unlike
+// workflow-run artifacts.
+export const MACOS_DOWNLOAD_URL =
+  'https://github.com/mgerguri/mg-teacher/releases/latest/download/MG-Teacher-macOS.dmg'
+export const WINDOWS_DOWNLOAD_URL =
+  'https://github.com/mgerguri/mg-teacher/releases/latest/download/MG-Teacher-Windows-Setup.exe'
+
+export function getDownloadUrlForCurrentOs(): string {
+  const isMac = /Mac/i.test(navigator.platform) || /Mac OS X/i.test(navigator.userAgent)
+  return isMac ? MACOS_DOWNLOAD_URL : WINDOWS_DOWNLOAD_URL
+}
 
 export interface UpdateCheckResult {
   currentVersion: string

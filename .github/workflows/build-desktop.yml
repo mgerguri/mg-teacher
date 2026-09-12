@@ -2,7 +2,11 @@ name: Build desktop app
 
 # Builds the Tauri desktop app for macOS and Windows. Each OS produces its
 # own native installer — there is no single cross-platform artifact, so this
-# runs as a matrix with one job per target OS.
+# runs as a matrix with one job per target OS. The `release` job then
+# publishes both installers to a GitHub Release under fixed filenames, so
+# the in-app update banner can link to a stable, anonymously-downloadable
+# URL (workflow artifacts, unlike release assets, require a GitHub login
+# even on a public repo).
 on:
   push:
     branches: [desktop-main]
@@ -52,3 +56,42 @@ jobs:
             apps/desktop/src-tauri/target/release/bundle/**/*.msi
             apps/desktop/src-tauri/target/release/bundle/**/*.exe
           if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read app version
+        id: version
+        run: |
+          version=$(python3 -c "import json; print(json.load(open('apps/desktop/src-tauri/tauri.conf.json'))['package']['version'])")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Rename installers to stable, OS-fixed filenames
+        run: |
+          mkdir -p release-assets
+          find artifacts -iname "*.dmg" -exec cp {} release-assets/MG-Teacher-macOS.dmg \;
+          find artifacts -ipath "*nsis*" -iname "*.exe" -exec cp {} release-assets/MG-Teacher-Windows-Setup.exe \;
+          if [ ! -f release-assets/MG-Teacher-Windows-Setup.exe ]; then
+            find artifacts -iname "*.exe" -exec cp {} release-assets/MG-Teacher-Windows-Setup.exe \;
+          fi
+          if [ ! -f release-assets/MG-Teacher-Windows-Setup.exe ]; then
+            find artifacts -iname "*.msi" -exec cp {} release-assets/MG-Teacher-Windows.msi \;
+          fi
+          ls -la release-assets
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: desktop-v${{ steps.version.outputs.version }}
+          name: MG Teacher Desktop v${{ steps.version.outputs.version }}
+          make_latest: true
+          files: release-assets/*
