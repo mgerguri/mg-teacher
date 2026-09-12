@@ -14,12 +14,19 @@
     "allowlist": {
       "all": false,
       "shell": { "open": true },
+      "dialog": {
+        "all": false,
+        "save": true
+      },
+      "path": {
+        "all": true
+      },
       "fs": {
         "all": false,
         "readFile": true,
         "writeFile": true,
         "readDir": true,
-        "scope": ["$APPDATA/*", "$APPDATA/**"]
+        "scope": ["$APPDATA/*", "$APPDATA/**", "$HOME/**"]
       }
     },
     "bundle": {

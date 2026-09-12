@@ -7,6 +7,7 @@
 // the eager bundle. Needed because the dynamic `await import('docx')` below
 // only gives us the value bindings, not usable instance types.
 import type { Paragraph, Table } from 'docx'
+import { saveFile } from './save-file'
 
 export interface PlanSlot {
   time:       string
@@ -126,7 +127,8 @@ export async function exportPlanToPDF(data: PlanExportData) {
     doc.text(`Page ${i} of ${pageCount}`, PAGE_W - MARGIN, PAGE_H - 8, { align: 'right' })
   }
 
-  doc.save(safeFilename(data.className, data.weekStart, 'pdf'))
+  const buf = doc.output('arraybuffer')
+  await saveFile(safeFilename(data.className, data.weekStart, 'pdf'), buf)
 }
 
 // ── Word (.docx) ───────────────────────────────────────────────────────────────
@@ -219,14 +221,6 @@ export async function exportPlanToWord(data: PlanExportData) {
 
   const doc = new Document({ sections: [{ children }] })
   const blob = await Packer.toBlob(doc)
-
-  // Trigger download
-  const url = URL.createObjectURL(blob)
-  const a   = document.createElement('a')
-  a.href     = url
-  a.download = safeFilename(data.className, data.weekStart, 'docx')
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
+  const buf  = await blob.arrayBuffer()
+  await saveFile(safeFilename(data.className, data.weekStart, 'docx'), buf)
 }

@@ -5,6 +5,7 @@ import { localDb, LocalStudent, LocalClass, LocalSchedule, LocalSubject, LocalGr
 import { useSync } from '../context/SyncContext'
 import { useAuth } from '../context/AuthContext'
 import StudentModal, { StudentFormState } from '../components/students/StudentModal'
+import { saveFile } from '../lib/save-file'
 
 async function downloadProgressReport(
   student:    LocalStudent,
@@ -79,7 +80,8 @@ async function downloadProgressReport(
   })
 
   const name = `progress-${student.lastName}-${student.firstName}.pdf`.toLowerCase().replace(/\s+/g, '-')
-  doc.save(name)
+  const buf  = doc.output('arraybuffer')
+  await saveFile(name, buf)
 }
 
 const SCORE_STYLE: Record<number, string> = {

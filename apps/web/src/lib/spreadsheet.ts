@@ -4,6 +4,8 @@
 // of the hand-rolled, comma-splitting one this replaced — that one broke on
 // any value containing a comma or a quoted newline.
 
+import { saveFile } from './save-file'
+
 export type ColumnMap<T extends string> = Record<string, T>
 
 function normalizeHeader(header: string): string {
@@ -51,5 +53,6 @@ export async function downloadSpreadsheetTemplate(filename: string, headers: str
   const ws = XLSX.utils.aoa_to_sheet(rows)
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Template')
-  XLSX.writeFile(wb, filename)
+  const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer
+  await saveFile(filename, buf)
 }

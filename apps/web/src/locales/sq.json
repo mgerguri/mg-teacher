@@ -117,6 +117,7 @@
   },
   "bulkImport": {
     "downloadTemplate": "↓ Shkarko një model bosh",
+    "templateError": "Skedari i modelit nuk u ruajt dot.",
     "dropzone": "Zvarritni një skedar CSV ose Excel këtu, ose klikoni për të shfletuar",
     "noValidRows": "Nuk u gjetën rreshta të vlefshëm — sigurohuni që skedari ka një rresht kokë që përputhet me kolonat e pritura.",
     "parseError": "Skedari nuk u lexua dot. Sigurohuni që është një skedar CSV ose Excel i vlefshëm.",

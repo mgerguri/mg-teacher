@@ -3,6 +3,8 @@
  * Lazy-import heavy libraries so the main bundle stays lean.
  */
 
+import { saveFile } from './save-file'
+
 export interface StudentExportRow {
   name:       string
   avgGrade:   string
@@ -65,7 +67,8 @@ export async function exportToExcel(data: ReportExportData) {
     .replace(/\s+/g, '_')
     .replace(/[^\w.-]/g, '')
 
-  XLSX.writeFile(wb, filename)
+  const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer
+  await saveFile(filename, buf)
 }
 
 // ── PDF ────────────────────────────────────────────────────────────────────────
@@ -185,5 +188,6 @@ export async function exportToPDF(data: ReportExportData) {
     .replace(/\s+/g, '_')
     .replace(/[^\w.-]/g, '')
 
-  doc.save(filename)
+  const buf = doc.output('arraybuffer')
+  await saveFile(filename, buf)
 }
