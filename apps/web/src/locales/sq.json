@@ -110,9 +110,8 @@
     "dropzone": "Zvarritni një skedar CSV ose Excel këtu, ose klikoni për të shfletuar",
     "noValidRows": "Nuk u gjetën rreshta të vlefshëm — sigurohuni që skedari ka një rresht kokë që përputhet me kolonat e pritura.",
     "parseError": "Skedari nuk u lexua dot. Sigurohuni që është një skedar CSV ose Excel i vlefshëm.",
-    "rowsFound_one": "{{count}} rresht u gjet — parashikim (5 të parët):",
-    "rowsFound_other": "{{count}} rreshta u gjetën — parashikim (5 të parët):",
-    "andMore": "…dhe {{count}} të tjerë",
+    "rowsFound_one": "{{count}} rresht u gjet — shqyrtoni para se të importoni:",
+    "rowsFound_other": "{{count}} rreshta u gjetën — shqyrtoni para se të importoni:",
     "cancel": "Anulo",
     "import_one": "Importo {{count}} rresht",
     "import_other": "Importo {{count}} rreshta"
