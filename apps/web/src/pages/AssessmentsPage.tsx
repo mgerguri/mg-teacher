@@ -3,10 +3,37 @@ import { useTranslation } from 'react-i18next'
 import { localDb, LocalAssessment, LocalStudent, LocalSubject, LocalClass } from '../lib/local-db'
 import { useAuth } from '../context/AuthContext'
 import { useSync } from '../context/SyncContext'
+import BulkImportModal from '../components/common/BulkImportModal'
+import { ColumnMap } from '../lib/spreadsheet'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type AssessmentType = 'quiz' | 'test' | 'exam' | 'homework' | 'other'
+
+type AssessmentImportField =
+  'student' | 'subject' | 'title' | 'type' | 'score' | 'maxScore' | 'date' | 'notes'
+
+const ASSESSMENT_COLUMN_MAP: ColumnMap<AssessmentImportField> = {
+  student: 'student', studentname: 'student', student_name: 'student', email: 'student',
+  subject: 'subject', subjectname: 'subject', subject_name: 'subject', code: 'subject',
+  title: 'title',
+  type: 'type',
+  score: 'score',
+  maxscore: 'maxScore', max_score: 'maxScore', outof: 'maxScore', out_of: 'maxScore',
+  date: 'date',
+  notes: 'notes',
+}
+
+const ASSESSMENT_PREVIEW_COLUMNS: { key: AssessmentImportField; label: string }[] = [
+  { key: 'student', label: 'student' },
+  { key: 'subject', label: 'subject' },
+  { key: 'title', label: 'title' },
+  { key: 'score', label: 'score' },
+  { key: 'maxScore', label: 'maxScore' },
+  { key: 'date', label: 'date' },
+]
+
+const ASSESSMENT_TYPES: AssessmentType[] = ['quiz', 'test', 'exam', 'homework', 'other']
 
 interface AssessmentForm {
   studentId: string
@@ -47,6 +74,8 @@ export default function AssessmentsPage() {
 
   const [modal, setModal] = useState<{ open: boolean; editing?: LocalAssessment }>({ open: false })
   const [form,  setForm]  = useState<AssessmentForm>(EMPTY_FORM)
+  const [showImport,    setShowImport]    = useState(false)
+  const [importSkipped, setImportSkipped] = useState<number | null>(null)
 
   // ── Load ────────────────────────────────────────────────────────────────────
 
@@ -161,6 +190,61 @@ export default function AssessmentsPage() {
     sync()
   }
 
+  function findStudent(query: string): LocalStudent | undefined {
+    const q = query.trim().toLowerCase()
+    if (!q) return undefined
+    return classStudents.find(s =>
+      s.email?.toLowerCase() === q
+      || `${s.firstName} ${s.lastName}`.toLowerCase() === q
+      || `${s.lastName} ${s.firstName}`.toLowerCase() === q
+    )
+  }
+
+  function findSubject(query: string): LocalSubject | undefined {
+    const q = query.trim().toLowerCase()
+    if (!q) return undefined
+    return subjects.find(s => s.name.toLowerCase() === q || s.code.toLowerCase() === q)
+  }
+
+  async function handleImport(rows: Partial<Record<AssessmentImportField, string>>[]) {
+    if (!user) return
+    const now = new Date().toISOString()
+    const toAdd: LocalAssessment[] = []
+    let skipped = 0
+
+    for (const r of rows) {
+      const student = r.student ? findStudent(r.student) : undefined
+      const subject = r.subject ? findSubject(r.subject) : undefined
+      const score = Number(r.score)
+      if (!student || !subject || !r.title || Number.isNaN(score)) {
+        skipped++
+        continue
+      }
+      const type = ASSESSMENT_TYPES.includes(r.type as AssessmentType) ? (r.type as AssessmentType) : 'other'
+      toAdd.push({
+        id:         globalThis.crypto.randomUUID(),
+        studentId:  student.id,
+        subjectId:  subject.id,
+        classId:    student.classId ?? classId,
+        teacherId:  user.id,
+        title:      r.title,
+        type,
+        score,
+        maxScore:   Number(r.maxScore) || 100,
+        date:       r.date || now.slice(0, 10),
+        notes:      r.notes || undefined,
+        updatedAt:  now,
+        syncStatus: 'pending',
+      })
+    }
+
+    if (toAdd.length > 0) await localDb.assessments.bulkAdd(toAdd)
+    setImportSkipped(skipped > 0 ? skipped : null)
+    setShowImport(false)
+    await reload()
+    sync()
+  }
+
   function pct(score: number, max: number) {
     return Math.round((score / max) * 100)
   }
@@ -179,14 +263,28 @@ export default function AssessmentsPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">{t('assessments.title')}</h1>
         {classId && (
-          <button
-            onClick={openCreate}
-            className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700"
-          >
-            {t('assessments.addAssessment')}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => { setImportSkipped(null); setShowImport(true) }}
+              className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50"
+            >
+              {t('assessments.importAssessments')}
+            </button>
+            <button
+              onClick={openCreate}
+              className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700"
+            >
+              {t('assessments.addAssessment')}
+            </button>
+          </div>
         )}
       </div>
+
+      {importSkipped !== null && (
+        <p className="text-sm text-amber-600 mb-4">
+          {t('assessments.importSkipped', { count: importSkipped })}
+        </p>
+      )}
 
       {/* Filters */}
       <div className="flex gap-3 mb-6">
@@ -432,6 +530,18 @@ export default function AssessmentsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {showImport && (
+        <BulkImportModal
+          title={t('assessments.importTitle')}
+          columnsHint={t('assessments.importColumnsHint')}
+          columnMap={ASSESSMENT_COLUMN_MAP}
+          previewColumns={ASSESSMENT_PREVIEW_COLUMNS}
+          isRowUsable={row => !!(row.student && row.subject && row.title)}
+          onImport={handleImport}
+          onClose={() => setShowImport(false)}
+        />
       )}
     </div>
   )

@@ -4,6 +4,22 @@ import { useTranslation } from 'react-i18next'
 import { localDb, LocalClass } from '../lib/local-db'
 import { useSync } from '../context/SyncContext'
 import ClassModal from '../components/students/ClassModal'
+import BulkImportModal from '../components/common/BulkImportModal'
+import { ColumnMap } from '../lib/spreadsheet'
+
+type ClassImportField = 'name' | 'gradeLevel' | 'academicYear'
+
+const CLASS_COLUMN_MAP: ColumnMap<ClassImportField> = {
+  name: 'name',
+  gradelevel: 'gradeLevel', grade_level: 'gradeLevel', grade: 'gradeLevel',
+  academicyear: 'academicYear', academic_year: 'academicYear', year: 'academicYear',
+}
+
+const CLASS_PREVIEW_COLUMNS: { key: ClassImportField; label: string }[] = [
+  { key: 'name', label: 'name' },
+  { key: 'gradeLevel', label: 'gradeLevel' },
+  { key: 'academicYear', label: 'academicYear' },
+]
 
 export default function ClassesPage() {
   const navigate  = useNavigate()
@@ -12,6 +28,7 @@ export default function ClassesPage() {
   const [classes, setClasses] = useState<LocalClass[]>([])
   const [counts,  setCounts]  = useState<Record<string, number>>({})
   const [modal,   setModal]   = useState<{ open: boolean; cls: LocalClass | null }>({ open: false, cls: null })
+  const [showImport, setShowImport] = useState(false)
 
   const reload = useCallback(async () => {
     const cls = await localDb.classes.filter(c => !c.deletedAt).toArray()
@@ -50,16 +67,39 @@ export default function ClassesPage() {
     sync()
   }
 
+  async function handleImport(rows: Partial<Record<ClassImportField, string>>[]) {
+    const now = new Date().toISOString()
+    await localDb.classes.bulkAdd(rows.map(r => ({
+      id:           globalThis.crypto.randomUUID(),
+      name:         r.name ?? '',
+      gradeLevel:   r.gradeLevel ?? '',
+      academicYear: r.academicYear ?? '',
+      updatedAt:    now,
+      syncStatus:   'pending' as const,
+    })))
+    setShowImport(false)
+    await reload()
+    sync()
+  }
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-semibold text-gray-900">{t('classes.title')}</h1>
-        <button
-          onClick={() => setModal({ open: true, cls: null })}
-          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          {t('classes.newClass')}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowImport(true)}
+            className="px-3 py-1.5 border border-gray-200 hover:bg-gray-50 text-sm text-gray-700 rounded-lg transition-colors"
+          >
+            {t('classes.importClasses')}
+          </button>
+          <button
+            onClick={() => setModal({ open: true, cls: null })}
+            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            {t('classes.newClass')}
+          </button>
+        </div>
       </div>
 
       {classes.length === 0 ? (
@@ -108,6 +148,18 @@ export default function ClassesPage() {
           onSave={handleSave}
           onDelete={modal.cls ? handleDelete : undefined}
           onClose={() => setModal({ open: false, cls: null })}
+        />
+      )}
+
+      {showImport && (
+        <BulkImportModal
+          title={t('classes.importTitle')}
+          columnsHint={t('classes.importColumnsHint')}
+          columnMap={CLASS_COLUMN_MAP}
+          previewColumns={CLASS_PREVIEW_COLUMNS}
+          isRowUsable={row => !!row.name}
+          onImport={handleImport}
+          onClose={() => setShowImport(false)}
         />
       )}
     </div>

@@ -4,7 +4,29 @@ import { useTranslation } from 'react-i18next'
 import { localDb, LocalStudent, LocalClass } from '../lib/local-db'
 import { useSync } from '../context/SyncContext'
 import StudentModal, { StudentFormState } from '../components/students/StudentModal'
-import CsvImportModal from '../components/students/CsvImportModal'
+import BulkImportModal from '../components/common/BulkImportModal'
+import { ColumnMap } from '../lib/spreadsheet'
+
+const STUDENT_COLUMN_MAP: ColumnMap<keyof StudentFormState> = {
+  firstname: 'firstName', first_name: 'firstName',
+  lastname: 'lastName', last_name: 'lastName',
+  email: 'email',
+  dateofbirth: 'dateOfBirth', dob: 'dateOfBirth', date_of_birth: 'dateOfBirth',
+  phone: 'phone',
+  parentname: 'parentName', parent_name: 'parentName',
+  parentphone: 'parentPhone', parent_phone: 'parentPhone',
+  parentemail: 'parentEmail', parent_email: 'parentEmail',
+  address: 'address',
+  notes: 'notes',
+}
+
+const STUDENT_PREVIEW_COLUMNS: { key: keyof StudentFormState; label: string }[] = [
+  { key: 'firstName', label: 'firstName' },
+  { key: 'lastName', label: 'lastName' },
+  { key: 'email', label: 'email' },
+  { key: 'dateOfBirth', label: 'dateOfBirth' },
+  { key: 'phone', label: 'phone' },
+]
 
 export default function StudentsPage() {
   const { classId } = useParams<{ classId: string }>()
@@ -68,15 +90,24 @@ export default function StudentsPage() {
     sync()
   }
 
-  async function handleImport(rows: StudentFormState[]) {
+  async function handleImport(rows: Partial<Record<keyof StudentFormState, string>>[]) {
     const now = new Date().toISOString()
     await localDb.students.bulkAdd(rows.map(r => ({
-      id:         globalThis.crypto.randomUUID(),
-      enrolledAt: now,
-      updatedAt:  now,
-      syncStatus: 'pending' as const,
-      ...r,
-      classId:    classId ?? r.classId,
+      id:          globalThis.crypto.randomUUID(),
+      firstName:   r.firstName ?? '',
+      lastName:    r.lastName ?? '',
+      email:       r.email || undefined,
+      dateOfBirth: r.dateOfBirth || undefined,
+      phone:       r.phone || undefined,
+      parentName:  r.parentName || undefined,
+      parentPhone: r.parentPhone || undefined,
+      parentEmail: r.parentEmail || undefined,
+      address:     r.address || undefined,
+      notes:       r.notes || undefined,
+      classId:     classId ?? r.classId,
+      enrolledAt:  now,
+      updatedAt:   now,
+      syncStatus:  'pending' as const,
     })))
     setShowImport(false)
     await reload()
@@ -181,7 +212,12 @@ export default function StudentsPage() {
       )}
 
       {showImport && (
-        <CsvImportModal
+        <BulkImportModal
+          title={t('students.importTitle')}
+          columnsHint={t('students.importColumnsHint')}
+          columnMap={STUDENT_COLUMN_MAP}
+          previewColumns={STUDENT_PREVIEW_COLUMNS}
+          isRowUsable={row => !!(row.firstName || row.lastName)}
           onImport={handleImport}
           onClose={() => setShowImport(false)}
         />
