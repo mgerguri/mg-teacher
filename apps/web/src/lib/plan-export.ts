@@ -3,6 +3,11 @@
  * Both libraries are lazy-imported to keep the main bundle small.
  */
 
+// Type-only import — erased at compile time, so it doesn't force docx into
+// the eager bundle. Needed because the dynamic `await import('docx')` below
+// only gives us the value bindings, not usable instance types.
+import type { Paragraph, Table } from 'docx'
+
 export interface PlanSlot {
   time:       string
   subject:    string
@@ -105,7 +110,8 @@ export async function exportPlanToPDF(data: PlanExportData) {
       })
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      cursorY = (doc as any).lastAutoTable?.finalY + 6 ?? cursorY + 20
+      const finalY = (doc as any).lastAutoTable?.finalY as number | undefined
+      cursorY = finalY !== undefined ? finalY + 6 : cursorY + 20
     }
 
     cursorY += 4
