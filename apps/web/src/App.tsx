@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from './context/AuthContext'
 import { useSync } from './context/SyncContext'
 import ProtectedRoute from './components/ProtectedRoute'
+import UpdateBanner from './components/UpdateBanner'
 import LoginPage from './pages/LoginPage'
 import SchedulePage from './pages/SchedulePage'
 import ClassesPage from './pages/ClassesPage'
@@ -104,31 +105,34 @@ function Layout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route
-        path="/*"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <Routes>
-                <Route path="/"                        element={<DashboardPage />} />
-                <Route path="/classes"                 element={<ClassesPage />} />
-                <Route path="/classes/:classId"        element={<StudentsPage />} />
-                <Route path="/students/:studentId"     element={<StudentProfilePage />} />
-                <Route path="/grades"                  element={<GradesPage />} />
-                <Route path="/attendance"              element={<AttendancePage />} />
-                <Route path="/plans"                   element={<WeeklyPlansPage />} />
-                <Route path="/reports"                 element={<ReportsPage />} />
-                <Route path="/subjects"                element={<SubjectsPage />} />
-                <Route path="/assessments"             element={<AssessmentsPage />} />
-                <Route path="/teachers"                element={<TeachersPage />} />
-                <Route path="/schedule"                element={<SchedulePage />} />
-              </Routes>
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-    </Routes>
+    <>
+      <UpdateBanner />
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/*"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Routes>
+                  <Route path="/"                        element={<DashboardPage />} />
+                  <Route path="/classes"                 element={<ClassesPage />} />
+                  <Route path="/classes/:classId"        element={<StudentsPage />} />
+                  <Route path="/students/:studentId"     element={<StudentProfilePage />} />
+                  <Route path="/grades"                  element={<GradesPage />} />
+                  <Route path="/attendance"              element={<AttendancePage />} />
+                  <Route path="/plans"                   element={<WeeklyPlansPage />} />
+                  <Route path="/reports"                 element={<ReportsPage />} />
+                  <Route path="/subjects"                element={<SubjectsPage />} />
+                  <Route path="/assessments"             element={<AssessmentsPage />} />
+                  <Route path="/teachers"                element={<TeachersPage />} />
+                  <Route path="/schedule"                element={<SchedulePage />} />
+                </Routes>
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </>
   )
 }

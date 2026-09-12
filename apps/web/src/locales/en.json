@@ -1,4 +1,9 @@
 {
+  "update": {
+    "available": "A new version ({{version}}) is available.",
+    "download": "Download",
+    "dismiss": "Dismiss"
+  },
   "nav": {
     "appName": "MG Teacher",
     "dashboard": "Dashboard",

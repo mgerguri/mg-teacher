@@ -1,4 +1,9 @@
 {
+  "update": {
+    "available": "Ka një version të ri ({{version}}).",
+    "download": "Shkarko",
+    "dismiss": "Mbyll"
+  },
   "nav": {
     "appName": "MG Mësues",
     "dashboard": "Paneli",
