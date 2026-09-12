@@ -43,6 +43,15 @@ export default function BulkImportModal<T extends string>({
     }
   }
 
+  async function handleDownloadTemplate() {
+    setError(null)
+    try {
+      await downloadSpreadsheetTemplate(templateFilename, templateHeaders, templateExample)
+    } catch {
+      setError(t('bulkImport.templateError'))
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 max-h-[85vh] flex flex-col">
@@ -57,7 +66,7 @@ export default function BulkImportModal<T extends string>({
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
           <button
             type="button"
-            onClick={() => downloadSpreadsheetTemplate(templateFilename, templateHeaders, templateExample)}
+            onClick={handleDownloadTemplate}
             className="text-sm text-blue-600 hover:underline"
           >
             {t('bulkImport.downloadTemplate')}
