@@ -41,7 +41,11 @@
     "email": "Email",
     "password": "Fjalëkalimi",
     "emailPlaceholder": "ju@shkolla.com",
-    "somethingWentWrong": "Diçka shkoi gabim"
+    "somethingWentWrong": "Diçka shkoi gabim",
+    "createAccount": "Krijo llogari",
+    "createAccountSubtitle": "Krijoni llogarinë tuaj lokale për të filluar",
+    "firstName": "Emri",
+    "lastName": "Mbiemri"
   },
   "classes": {
     "title": "Klasat",

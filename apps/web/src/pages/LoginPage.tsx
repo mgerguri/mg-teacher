@@ -4,9 +4,11 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 
 export default function LoginPage() {
-  const { login } = useAuth()
+  const { login, createAccount, needsSetup } = useAuth()
   const navigate  = useNavigate()
   const { t }     = useTranslation()
+  const [firstName, setFirstName] = useState('')
+  const [lastName,  setLastName]  = useState('')
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
   const [error,    setError]    = useState<string | null>(null)
@@ -17,7 +19,11 @@ export default function LoginPage() {
     setError(null)
     setLoading(true)
     try {
-      await login(email, password)
+      if (needsSetup) {
+        await createAccount({ email, password, firstName, lastName })
+      } else {
+        await login(email, password)
+      }
       navigate('/')
     } catch (err: any) {
       setError(err.message ?? t('auth.somethingWentWrong'))
@@ -29,10 +35,37 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-        <h1 className="text-xl font-semibold text-gray-900 mb-1">{t('auth.signIn')}</h1>
-        <p className="text-sm text-gray-500 mb-6">MG Teacher</p>
+        <h1 className="text-xl font-semibold text-gray-900 mb-1">
+          {needsSetup ? t('auth.createAccount') : t('auth.signIn')}
+        </h1>
+        <p className="text-sm text-gray-500 mb-6">
+          {needsSetup ? t('auth.createAccountSubtitle') : 'MG Teacher'}
+        </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {needsSetup && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('auth.firstName')}</label>
+                <input
+                  required
+                  value={firstName}
+                  onChange={e => setFirstName(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('auth.lastName')}</label>
+                <input
+                  required
+                  value={lastName}
+                  onChange={e => setLastName(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('auth.email')}</label>
             <input
@@ -50,6 +83,7 @@ export default function LoginPage() {
             <input
               type="password"
               required
+              minLength={needsSetup ? 8 : undefined}
               value={password}
               onChange={e => setPassword(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -64,7 +98,9 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition-colors"
           >
-            {loading ? t('auth.signingIn') : t('auth.signIn')}
+            {loading
+              ? t('auth.signingIn')
+              : needsSetup ? t('auth.createAccount') : t('auth.signIn')}
           </button>
         </form>
       </div>

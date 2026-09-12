@@ -41,7 +41,11 @@
     "email": "Email",
     "password": "Password",
     "emailPlaceholder": "you@school.com",
-    "somethingWentWrong": "Something went wrong"
+    "somethingWentWrong": "Something went wrong",
+    "createAccount": "Create account",
+    "createAccountSubtitle": "Set up your local account to get started",
+    "firstName": "First name",
+    "lastName": "Last name"
   },
   "classes": {
     "title": "Classes",

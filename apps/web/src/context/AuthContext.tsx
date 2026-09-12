@@ -1,4 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { localDb } from '../lib/local-db'
+import { hasAnyAccount, createLocalAccount, verifyLocalLogin, CreateAccountInput } from '../lib/local-auth'
 
 export type Role = 'admin' | 'teacher'
 
@@ -12,61 +14,69 @@ export interface AuthUser {
 
 interface AuthContextValue {
   user: AuthUser | null
-  token: string | null
-  login: (email: string, password: string) => Promise<void>
-  logout: () => void
   isLoading: boolean
+  // True until the first local account has been created on this device.
+  needsSetup: boolean
+  login: (email: string, password: string) => Promise<void>
+  createAccount: (input: Omit<CreateAccountInput, 'role'>) => Promise<void>
+  logout: () => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
+// Remembers which local teacher is signed in on this device — no server session involved.
+const SESSION_KEY = 'mg_teacher_session_user_id'
+
+function toAuthUser(teacher: { id: string; email: string; firstName: string; lastName: string; role: Role }): AuthUser {
+  return { id: teacher.id, email: teacher.email, firstName: teacher.firstName, lastName: teacher.lastName, role: teacher.role }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'))
   const [isLoading, setIsLoading] = useState(true)
+  const [needsSetup, setNeedsSetup] = useState(false)
 
-  // On mount, verify the stored token is still valid
   useEffect(() => {
-    if (!token) {
+    let cancelled = false
+    async function restore() {
+      const anyAccount = await hasAnyAccount()
+      if (cancelled) return
+      setNeedsSetup(!anyAccount)
+
+      const savedId = localStorage.getItem(SESSION_KEY)
+      if (savedId) {
+        const teacher = await localDb.teachers.get(savedId)
+        if (cancelled) return
+        if (teacher) setUser(toAuthUser(teacher))
+        else localStorage.removeItem(SESSION_KEY)
+      }
       setIsLoading(false)
-      return
     }
-    fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(setUser)
-      .catch(() => {
-        localStorage.removeItem('token')
-        setToken(null)
-      })
-      .finally(() => setIsLoading(false))
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    restore()
+    return () => { cancelled = true }
+  }, [])
 
   async function login(email: string, password: string) {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    })
+    const teacher = await verifyLocalLogin(email, password)
+    localStorage.setItem(SESSION_KEY, teacher.id)
+    setUser(toAuthUser(teacher))
+  }
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      throw new Error(err.error ?? 'Login failed')
-    }
-
-    const data = await res.json()
-    localStorage.setItem('token', data.token)
-    setToken(data.token)
-    setUser(data.user)
+  async function createAccount(input: Omit<CreateAccountInput, 'role'>) {
+    // The first account created on a device is always the admin.
+    const teacher = await createLocalAccount({ ...input, role: 'admin' })
+    setNeedsSetup(false)
+    localStorage.setItem(SESSION_KEY, teacher.id)
+    setUser(toAuthUser(teacher))
   }
 
   function logout() {
-    localStorage.removeItem('token')
-    setToken(null)
+    localStorage.removeItem(SESSION_KEY)
     setUser(null)
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, isLoading, needsSetup, login, createAccount, logout }}>
       {children}
     </AuthContext.Provider>
   )

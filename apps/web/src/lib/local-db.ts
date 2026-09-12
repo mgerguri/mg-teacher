@@ -13,6 +13,9 @@ export interface LocalTeacher {
   firstName: string
   lastName: string
   updatedAt: string
+  // Salted hash of the local sign-in password (`saltHex:hashHex`). Absent for
+  // records created before local-only auth existed.
+  passwordHash?: string
 }
 
 export interface LocalStudent {
@@ -205,6 +208,10 @@ class LocalDatabase extends Dexie {
     // v6 adds assessments
     this.version(6).stores({
       assessments: 'id, studentId, subjectId, classId, teacherId, date, updatedAt, syncStatus',
+    })
+    // v7 indexes teacher email for local-only sign-in lookups
+    this.version(7).stores({
+      teachers: 'id, email, role, updatedAt',
     })
   }
 }

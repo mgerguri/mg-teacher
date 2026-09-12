@@ -1,7 +1,12 @@
-import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react'
-import { useAuth } from './AuthContext'
-import { syncEngine } from '../lib/sync-engine'
+import { createContext, useContext, ReactNode } from 'react'
 
+// Desktop build: all data lives on-device (see local-db.ts), there is no
+// cloud backend to sync with. This stub keeps the same hook shape as the
+// cloud build's SyncContext so shared UI (e.g. the sync indicator in
+// App.tsx) doesn't need to branch on which build it's in.
+
+// Kept as a union (not narrowed to 'idle') so it matches the cloud build's
+// SyncContext shape and call sites don't need to branch per build.
 type SyncState = 'idle' | 'syncing' | 'error'
 
 interface SyncContextValue {
@@ -10,63 +15,18 @@ interface SyncContextValue {
   sync: () => Promise<void>
 }
 
-const SyncContext = createContext<SyncContextValue | null>(null)
+const value: SyncContextValue = {
+  state: 'idle',
+  lastSyncedAt: null,
+  sync: async () => {},
+}
 
-// How often to auto-sync while online (ms)
-const SYNC_INTERVAL_MS = 60_000
+const SyncContext = createContext<SyncContextValue>(value)
 
 export function SyncProvider({ children }: { children: ReactNode }) {
-  const { user, token } = useAuth()
-  const [state, setState] = useState<SyncState>('idle')
-  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(
-    () => localStorage.getItem('mg_teacher_last_synced_at')
-  )
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  async function sync() {
-    if (!token || state === 'syncing') return
-    setState('syncing')
-    try {
-      await syncEngine.sync(token)
-      const now = new Date().toISOString()
-      setLastSyncedAt(now)
-      setState('idle')
-    } catch (err) {
-      console.error('[sync] failed', err)
-      setState('error')
-    }
-  }
-
-  useEffect(() => {
-    if (!user || !token) {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-      return
-    }
-
-    // Sync immediately on login / mount
-    sync()
-
-    // Then sync on a regular interval
-    intervalRef.current = setInterval(sync, SYNC_INTERVAL_MS)
-
-    // Sync when the browser comes back online
-    window.addEventListener('online', sync)
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-      window.removeEventListener('online', sync)
-    }
-  }, [user, token]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  return (
-    <SyncContext.Provider value={{ state, lastSyncedAt, sync }}>
-      {children}
-    </SyncContext.Provider>
-  )
+  return <SyncContext.Provider value={value}>{children}</SyncContext.Provider>
 }
 
 export function useSync() {
-  const ctx = useContext(SyncContext)
-  if (!ctx) throw new Error('useSync must be used inside SyncProvider')
-  return ctx
+  return useContext(SyncContext)
 }

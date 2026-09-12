@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { localDb, LocalTeacher } from '../lib/local-db'
+import { createLocalAccount, hashPassword } from '../lib/local-auth'
 import { useAuth } from '../context/AuthContext'
-import { useSync } from '../context/SyncContext'
 
 type Role = 'admin' | 'teacher'
 
@@ -19,10 +19,9 @@ const EMPTY_FORM: TeacherForm = { firstName: '', lastName: '', email: '', passwo
 // ── Modal ──────────────────────────────────────────────────────────────────────
 
 function TeacherModal({
-  teacher, token, onClose, onDone,
+  teacher, onClose, onDone,
 }: {
   teacher:   LocalTeacher | null
-  token:     string
   onClose:   () => void
   onDone:    () => void
 }) {
@@ -46,25 +45,22 @@ function TeacherModal({
     setError('')
     try {
       if (isEdit) {
-        const body: Record<string, string> = {
+        const updates: Partial<LocalTeacher> = {
           firstName: form.firstName,
           lastName:  form.lastName,
           role:      form.role,
+          updatedAt: new Date().toISOString(),
         }
-        if (form.password) body.password = form.password
-        const res = await fetch(`/api/admin/teachers/${teacher!.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify(body),
-        })
-        if (!res.ok) throw new Error((await res.json()).error ?? 'Failed')
+        if (form.password) updates.passwordHash = await hashPassword(form.password)
+        await localDb.teachers.update(teacher!.id, updates)
       } else {
-        const res = await fetch('/api/admin/teachers', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify(form),
+        await createLocalAccount({
+          email:     form.email,
+          password:  form.password,
+          firstName: form.firstName,
+          lastName:  form.lastName,
+          role:      form.role,
         })
-        if (!res.ok) throw new Error((await res.json()).error ?? 'Failed')
       }
       onDone()
     } catch (err: any) {
@@ -77,11 +73,7 @@ function TeacherModal({
   async function handleDeactivate() {
     setSaving(true)
     try {
-      const res = await fetch(`/api/admin/teachers/${teacher!.id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (!res.ok) throw new Error((await res.json()).error ?? 'Failed')
+      await localDb.teachers.delete(teacher!.id)
       onDone()
     } catch (err: any) {
       setError(err.message)
@@ -205,8 +197,7 @@ function TeacherModal({
 
 export default function TeachersPage() {
   const { t }             = useTranslation()
-  const { user, token }   = useAuth()
-  const { sync }          = useSync()
+  const { user }          = useAuth()
   const [teachers, setTeachers] = useState<LocalTeacher[]>([])
   const [modal, setModal]       = useState<{ open: boolean; teacher: LocalTeacher | null }>({ open: false, teacher: null })
 
@@ -224,9 +215,7 @@ export default function TeachersPage() {
 
   function handleDone() {
     setModal({ open: false, teacher: null })
-    // Trigger a sync pull to refresh teacher list from server
-    sync()
-    setTimeout(reload, 800)   // reload after pull settles
+    reload()
   }
 
   return (
@@ -280,10 +269,9 @@ export default function TeachersPage() {
         )}
       </div>
 
-      {modal.open && token && (
+      {modal.open && (
         <TeacherModal
           teacher={modal.teacher}
-          token={token}
           onClose={() => setModal({ open: false, teacher: null })}
           onDone={handleDone}
         />

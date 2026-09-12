@@ -4,8 +4,10 @@
   "scripts": {
     "dev:web": "pnpm --filter web dev",
     "dev:api": "pnpm --filter api dev",
+    "dev:desktop": "pnpm --filter desktop dev",
     "build:web": "pnpm --filter web build",
     "build:api": "pnpm --filter api build",
+    "build:desktop": "pnpm --filter desktop build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
