@@ -40,3 +40,16 @@ export function mapSpreadsheetRows<T extends string>(
     return mapped
   })
 }
+
+// Empty (header-row-only) .xlsx a user can fill in and hand back to
+// readSpreadsheetRows/mapSpreadsheetRows above — same `xlsx` package already
+// used for report exports, so this is the one place that writes as well as
+// reads spreadsheets.
+export async function downloadSpreadsheetTemplate(filename: string, headers: string[], exampleRow?: string[]): Promise<void> {
+  const XLSX = await import('xlsx')
+  const rows = exampleRow ? [headers, exampleRow] : [headers]
+  const ws = XLSX.utils.aoa_to_sheet(rows)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Template')
+  XLSX.writeFile(wb, filename)
+}

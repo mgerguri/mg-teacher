@@ -541,6 +541,9 @@ export default function AssessmentsPage() {
           isRowUsable={row => !!(row.student && row.subject && row.title)}
           onImport={handleImport}
           onClose={() => setShowImport(false)}
+          templateFilename="assessments-template.xlsx"
+          templateHeaders={['student', 'subject', 'title', 'type', 'score', 'maxScore', 'date', 'notes']}
+          templateExample={['Ana Berisha', 'Mathematics', 'Chapter 5 test', 'test', '85', '100', '2026-09-15', '']}
         />
       )}
     </div>

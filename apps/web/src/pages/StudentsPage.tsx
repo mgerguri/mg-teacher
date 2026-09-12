@@ -220,6 +220,9 @@ export default function StudentsPage() {
           isRowUsable={row => !!(row.firstName || row.lastName)}
           onImport={handleImport}
           onClose={() => setShowImport(false)}
+          templateFilename="students-template.xlsx"
+          templateHeaders={['firstName', 'lastName', 'email', 'dateOfBirth', 'phone', 'parentName', 'parentPhone', 'parentEmail', 'address', 'notes']}
+          templateExample={['Ana', 'Berisha', 'ana.berisha@example.com', '2012-04-15', '+355691234567', 'Elira Berisha', '+355697654321', 'elira.berisha@example.com', 'Rr. Dëshmorët e Kombit', '']}
         />
       )}
     </div>

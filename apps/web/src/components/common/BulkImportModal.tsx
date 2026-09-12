@@ -1,19 +1,23 @@
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ColumnMap, mapSpreadsheetRows, readSpreadsheetRows } from '../../lib/spreadsheet'
+import { ColumnMap, downloadSpreadsheetTemplate, mapSpreadsheetRows, readSpreadsheetRows } from '../../lib/spreadsheet'
 
 interface Props<T extends string> {
-  title:          string
-  columnsHint:    string
-  columnMap:      ColumnMap<T>
-  previewColumns: { key: T; label: string }[]
-  isRowUsable:    (row: Partial<Record<T, string>>) => boolean
-  onImport:       (rows: Partial<Record<T, string>>[]) => void
-  onClose:        () => void
+  title:             string
+  columnsHint:       string
+  columnMap:         ColumnMap<T>
+  previewColumns:    { key: T; label: string }[]
+  isRowUsable:       (row: Partial<Record<T, string>>) => boolean
+  onImport:          (rows: Partial<Record<T, string>>[]) => void
+  onClose:           () => void
+  templateFilename:  string
+  templateHeaders:   string[]
+  templateExample?:  string[]
 }
 
 export default function BulkImportModal<T extends string>({
   title, columnsHint, columnMap, previewColumns, isRowUsable, onImport, onClose,
+  templateFilename, templateHeaders, templateExample,
 }: Props<T>) {
   const { t } = useTranslation()
   const [preview,  setPreview]  = useState<Partial<Record<T, string>>[] | null>(null)
@@ -51,6 +55,14 @@ export default function BulkImportModal<T extends string>({
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+          <button
+            type="button"
+            onClick={() => downloadSpreadsheetTemplate(templateFilename, templateHeaders, templateExample)}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            {t('bulkImport.downloadTemplate')}
+          </button>
+
           <div
             onClick={() => inputRef.current?.click()}
             onDragOver={e => e.preventDefault()}
