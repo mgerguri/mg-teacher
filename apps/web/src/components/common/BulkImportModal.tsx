@@ -76,18 +76,20 @@ export default function BulkImportModal<T extends string>({
               <p className="text-sm text-gray-500 mb-2">
                 {t('bulkImport.rowsFound', { count: preview.length })}
               </p>
-              <div className="overflow-x-auto rounded-lg border border-gray-100">
+              <div className="max-h-72 overflow-y-auto overflow-x-auto rounded-lg border border-gray-100">
                 <table className="w-full text-xs">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-gray-50 sticky top-0">
                     <tr>
+                      <th className="px-3 py-2 text-left font-medium text-gray-400 w-10">#</th>
                       {previewColumns.map(col => (
                         <th key={col.key} className="px-3 py-2 text-left font-medium text-gray-500">{col.label}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {preview.slice(0, 5).map((row, i) => (
+                    {preview.map((row, i) => (
                       <tr key={i} className="border-t border-gray-100">
+                        <td className="px-3 py-2 text-gray-400">{i + 1}</td>
                         {previewColumns.map(col => (
                           <td key={col.key} className="px-3 py-2 text-gray-700">{row[col.key] ?? ''}</td>
                         ))}
@@ -96,9 +98,6 @@ export default function BulkImportModal<T extends string>({
                   </tbody>
                 </table>
               </div>
-              {preview.length > 5 && (
-                <p className="text-xs text-gray-400 mt-1">{t('bulkImport.andMore', { count: preview.length - 5 })}</p>
-              )}
             </div>
           )}
         </div>
