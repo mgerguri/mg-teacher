@@ -32,14 +32,22 @@ interface Props {
   subjects:   LocalSubject[]
   classes:    LocalClass[]
   teachers:   LocalTeacher[]
+  schedules:  LocalSchedule[]
   defaults?:  { dayOfWeek?: number; startTime?: string }
   onSave:     (data: FormState) => void
   onDelete?:  () => void
   onClose:    () => void
 }
 
+// Two ranges [aStart,aEnd) and [bStart,bEnd) overlap iff each starts before
+// the other ends — comparing "HH:MM" strings lexically works the same as
+// comparing minutes since both are zero-padded and same-length.
+function timesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string): boolean {
+  return aStart < bEnd && bStart < aEnd
+}
+
 export default function ScheduleEntryModal({
-  entry, subjects, classes, teachers, defaults, onSave, onDelete, onClose,
+  entry, subjects, classes, teachers, schedules, defaults, onSave, onDelete, onClose,
 }: Props) {
   const isEdit = !!entry
   const { t }  = useTranslation()
@@ -86,6 +94,23 @@ export default function ScheduleEntryModal({
       setError(t('scheduleModal.endAfterStart'))
       return
     }
+
+    const others = schedules.filter(s =>
+      s.id !== entry?.id &&
+      s.dayOfWeek === form.dayOfWeek &&
+      timesOverlap(form.startTime, form.endTime, s.startTime, s.endTime)
+    )
+    const classConflict   = others.find(s => s.classId === form.classId)
+    const teacherConflict = others.find(s => s.teacherId === form.teacherId)
+    if (classConflict) {
+      setError(t('scheduleModal.classConflict'))
+      return
+    }
+    if (teacherConflict) {
+      setError(t('scheduleModal.teacherConflict'))
+      return
+    }
+
     setError('')
     onSave(form)
   }

@@ -16,6 +16,7 @@ import SubjectsPage from './pages/SubjectsPage'
 import TeachersPage from './pages/TeachersPage'
 import AssessmentsPage from './pages/AssessmentsPage'
 import DashboardPage from './pages/DashboardPage'
+import SettingsPage from './pages/SettingsPage'
 import GlobalSearch from './components/GlobalSearch'
 import i18n, { Language, saveLanguage } from './lib/i18n'
 
@@ -69,6 +70,9 @@ function Layout({ children }: { children: React.ReactNode }) {
             <NavLink to="/teachers"     className={({ isActive }) => `${navLink} ${isActive ? active : inactive}`}>{t('nav.teachers')}</NavLink>
           )}
           <NavLink to="/schedule"       className={({ isActive }) => `${navLink} ${isActive ? active : inactive}`}>{t('nav.schedule')}</NavLink>
+          {user?.role === 'admin' && (
+            <NavLink to="/settings"     className={({ isActive }) => `${navLink} ${isActive ? active : inactive}`}>{t('nav.settings')}</NavLink>
+          )}
         </nav>
 
         {/* Bottom: user info + controls */}
@@ -124,11 +128,13 @@ export default function App() {
                 <Route path="/assessments"             element={<AssessmentsPage />} />
                 <Route path="/teachers"                element={<TeachersPage />} />
                 <Route path="/schedule"                element={<SchedulePage />} />
+                <Route path="/settings"                element={<SettingsPage />} />
               </Routes>
             </Layout>
           </ProtectedRoute>
         }
       />
     </Routes>
+
   )
 }

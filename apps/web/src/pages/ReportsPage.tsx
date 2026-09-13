@@ -97,6 +97,7 @@ export default function ReportsPage() {
   const [rows,     setRows]     = useState<StudentRow[]>([])
   const [loading,   setLoading]   = useState(false)
   const [exporting, setExporting] = useState<'excel' | 'pdf' | null>(null)
+  const [exportError, setExportError] = useState<string | null>(null)
   const [sortKey,   setSortKey]   = useState<SortKey>('name')
   const [sortDir,   setSortDir]   = useState<SortDir>('asc')
 
@@ -229,13 +230,17 @@ export default function ReportsPage() {
 
   async function handleExportExcel() {
     setExporting('excel')
+    setExportError(null)
     try { await exportToExcel(buildExportData()) }
+    catch { setExportError(t('reports.export.error')) }
     finally { setExporting(null) }
   }
 
   async function handleExportPDF() {
     setExporting('pdf')
+    setExportError(null)
     try { await exportToPDF(buildExportData()) }
+    catch { setExportError(t('reports.export.error')) }
     finally { setExporting(null) }
   }
 
@@ -279,6 +284,8 @@ export default function ReportsPage() {
           </div>
         )}
       </div>
+
+      {exportError && <p className="text-sm text-red-600 -mt-4 mb-6">{exportError}</p>}
 
       {/* Filters */}
       <div className="flex flex-wrap gap-4 mb-6">

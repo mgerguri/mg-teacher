@@ -226,6 +226,7 @@ export default function SchedulePage() {
           subjects={subjects}
           classes={classes}
           teachers={teachers}
+          schedules={schedules}
           defaults={modal.defaults}
           onSave={handleSave}
           onDelete={modal.entry ? handleDelete : undefined}
