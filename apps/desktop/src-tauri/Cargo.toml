@@ -1,6 +1,6 @@
 [package]
 name = "mg-teacher-desktop"
-version = "0.0.4"
+version = "0.0.5"
 description = "MG Teacher Desktop App"
 authors = []
 license = ""

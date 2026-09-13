@@ -5,6 +5,16 @@ section per version bump. The GitHub Release for each version publishes its
 matching section below as the release notes; the in-app update banner links
 straight to that release.
 
+## [0.0.5] - 2026-09-13
+
+### Fixed
+- Signing in is no longer case-sensitive: an account registered as "Teacher@School.com" can be signed into as "teacher@school.com". Previously the two were treated as different accounts, so the same person could end up with a duplicate account they couldn't reach
+- Restoring a backup can no longer leave the app with no account to sign in to. Restore replaces the account list along with everything else, so an incomplete backup file used to lock you out of your own data permanently; the default admin login is now restored if the backup contains no usable account
+- Backups taken on an older version of the app can be restored again. Every release that changed the database silently invalidated existing backup files, which defeats the point of having them
+
+### Changed
+- Password checking no longer takes a different amount of time depending on how much of the password was correct
+
 ## [0.0.4] - 2026-09-13
 
 ### Added

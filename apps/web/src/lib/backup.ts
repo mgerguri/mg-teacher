@@ -4,7 +4,9 @@
 // student/grade/attendance record is gone with nothing to recover from.
 // This dumps every Dexie table to a single JSON file and reloads it verbatim.
 
-import { localDb } from './local-db'
+import Dexie from 'dexie'
+import { localDb, DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_PASSWORD } from './local-db'
+import { hashPassword } from './password-hash'
 import { saveFile } from './save-file'
 
 const BACKUP_FORMAT_VERSION = 1
@@ -65,7 +67,13 @@ export async function restoreBackup(file: File): Promise<void> {
   if (!isBackupFile(parsed) || parsed.format !== BACKUP_FORMAT_VERSION) {
     throw new BackupRestoreError('format')
   }
-  if (parsed.schemaVersion !== localDb.verno) {
+  // Only refuse backups from a *newer* schema than this build understands.
+  // Requiring an exact match meant every schema bump silently invalidated
+  // every backup the user had already taken — the opposite of what a backup
+  // is for, given this is the only copy of their data. Older backups are
+  // fine: Dexie has already migrated the live database, and restored rows go
+  // through the same tables as any other write.
+  if (parsed.schemaVersion > localDb.verno) {
     throw new BackupRestoreError('version')
   }
 
@@ -89,6 +97,32 @@ export async function restoreBackup(file: File): Promise<void> {
             updatedAt: (rec as Record<string, unknown>).updatedAt ?? now,
           }))
       await table.bulkAdd(restored)
+    }
+
+    // Restore wipes `teachers`, and on this branch that table holds the only
+    // sign-in credentials there are. A backup taken before local accounts
+    // existed — or one whose accounts were all removed — therefore leaves a
+    // database nobody can sign into, and the populate hook in local-db.ts
+    // won't help: it only fires for a database being created, never for one
+    // being refilled. Put the default admin back so the restore can't lock
+    // the user out of their own data.
+    const teachers = await localDb.teachers.toArray()
+    if (!teachers.some(t => t.passwordHash)) {
+      const passwordHash = await Dexie.waitFor(hashPassword(DEFAULT_ADMIN_PASSWORD))
+      const existingAdmin = teachers.find(t => t.email === DEFAULT_ADMIN_EMAIL)
+      if (existingAdmin) {
+        await localDb.teachers.update(existingAdmin.id, { passwordHash })
+      } else {
+        await localDb.teachers.add({
+          id: crypto.randomUUID(),
+          email: DEFAULT_ADMIN_EMAIL,
+          role: 'admin',
+          firstName: 'Admin',
+          lastName: 'Account',
+          updatedAt: new Date().toISOString(),
+          passwordHash,
+        })
+      }
     }
   })
 }
