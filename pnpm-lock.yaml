@@ -90,6 +90,9 @@ importers:
       '@mg-teacher/types':
         specifier: workspace:*
         version: link:../../packages/types
+      '@tauri-apps/api':
+        specifier: ^1.6.0
+        version: 1.6.0
       dexie:
         specifier: ^4.0.0
         version: 4.4.4
@@ -1073,6 +1076,10 @@ packages:
     resolution: {integrity: sha512-5L+T1fMX4RIEBoZzT0+sQ0PhTS36NULFmMXtl1TZo44TMAROIMHbZufSOjVWt/Y622BtxgxtaNOokbTDvfsrZA==}
     cpu: [x64]
     os: [win32]
+
+  '@tauri-apps/api@1.6.0':
+    resolution: {integrity: sha512-rqI++FWClU5I2UBp4HXFvl+sBWkdigBkxnpJDQUWttNyG7IZP4FwQGhTNL5EOw0vI8i6eSAJ5frLqO7n7jbJdg==}
+    engines: {node: '>= 14.6.0', npm: '>= 6.6.0', yarn: '>= 1.19.1'}
 
   '@tauri-apps/cli-darwin-arm64@1.6.3':
     resolution: {integrity: sha512-fQN6IYSL8bG4NvkdKE4sAGF4dF/QqqQq4hOAU+t8ksOzHJr0hUlJYfncFeJYutr/MMkdF7hYKadSb0j5EE9r0A==}
@@ -3716,6 +3723,8 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.62.0':
     optional: true
+
+  '@tauri-apps/api@1.6.0': {}
 
   '@tauri-apps/cli-darwin-arm64@1.6.3':
     optional: true
