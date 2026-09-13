@@ -5,6 +5,16 @@ section per version bump. The GitHub Release for each version publishes its
 matching section below as the release notes; the in-app update banner links
 straight to that release.
 
+## [0.0.6] - 2026-09-13
+
+### Changed
+- Every student now belongs to a class. The "No class" option is gone from the student form — a student with no class had no owning teacher, so they disappeared from the teacher who added them. Editing an older student without a class now assigns one
+
+### Fixed
+- Adding a student while viewing one class but picking a different one of your classes filed them under the wrong class; the class you pick is now the one used
+- The Teachers page could crash to a blank screen when the signed-in account's role resolved, because of how the admin check was ordered relative to React's hooks
+- Switching classes on the Attendance and Grades pages could snap back to the first class on its own
+
 ## [0.0.5] - 2026-09-13
 
 ### Fixed

@@ -136,7 +136,7 @@ export async function exportPlanToPDF(data: PlanExportData) {
 export async function exportPlanToWord(data: PlanExportData) {
   const {
     Document, Packer, Paragraph, Table, TableRow, TableCell,
-    TextRun, HeadingLevel, WidthType, BorderStyle, AlignmentType,
+    TextRun, HeadingLevel, WidthType, BorderStyle,
   } = await import('docx')
 
   const children: (Paragraph | Table)[] = []

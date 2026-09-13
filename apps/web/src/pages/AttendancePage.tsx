@@ -214,7 +214,10 @@ export default function AttendancePage() {
     localDb.classes.filter(c => !c.deletedAt).toArray().then(all => {
       const sorted = scopeClasses(all, user).sort((a, b) => a.name.localeCompare(b.name))
       setClasses(sorted)
-      if (sorted.length && !classId) setClassId(sorted[0].id)
+      // Functional form so this doesn't read `classId` from the closure: the
+      // effect re-runs whenever `user` changes identity, and a stale read of
+      // '' would reset a class the teacher had already picked.
+      setClassId(prev => prev || sorted[0]?.id || '')
     })
   }, [user])
 
