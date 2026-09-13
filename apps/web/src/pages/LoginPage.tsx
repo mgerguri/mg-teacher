@@ -3,11 +3,17 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 
-// Seeded automatically on every API boot (apps/api/src/ensure-default-admin.ts)
-// so there's always a working login on a fresh deployment. Keep in sync with
-// that file if these ever change.
+// Seeded into an empty database by apps/api/src/ensure-default-admin.ts, so
+// there's always a working login on a fresh dev setup. Keep in sync with that
+// file if these ever change.
+//
+// Only rendered in development builds. Printing working admin credentials on
+// the sign-in page of a deployed instance hands an admin session to anyone
+// who loads it — and the server no longer seeds this account in production
+// unless explicitly asked to, so the shortcut would not work there anyway.
 const DEFAULT_ADMIN_EMAIL = 'teacher@school.com'
 const DEFAULT_ADMIN_PASSWORD = 'password123'
+const SHOW_DEV_ADMIN_SHORTCUT = import.meta.env.DEV
 
 export default function LoginPage() {
   const { login } = useAuth()
@@ -87,19 +93,21 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="mt-6 pt-5 border-t border-gray-100 text-center">
-          <button
-            type="button"
-            onClick={handleAdminLogin}
-            disabled={loading}
-            className="text-xs text-gray-500 hover:text-gray-800 disabled:opacity-50 transition-colors"
-          >
-            {t('auth.loginAsAdmin')}
-          </button>
-          <p className="text-[11px] text-gray-300 mt-1">
-            {DEFAULT_ADMIN_EMAIL} / {DEFAULT_ADMIN_PASSWORD}
-          </p>
-        </div>
+        {SHOW_DEV_ADMIN_SHORTCUT && (
+          <div className="mt-6 pt-5 border-t border-gray-100 text-center">
+            <button
+              type="button"
+              onClick={handleAdminLogin}
+              disabled={loading}
+              className="text-xs text-gray-500 hover:text-gray-800 disabled:opacity-50 transition-colors"
+            >
+              {t('auth.loginAsAdmin')}
+            </button>
+            <p className="text-[11px] text-gray-300 mt-1">
+              {DEFAULT_ADMIN_EMAIL} / {DEFAULT_ADMIN_PASSWORD}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )

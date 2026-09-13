@@ -4,14 +4,22 @@ import { randomUUID } from 'crypto'
 import { eq } from 'drizzle-orm'
 import { db } from '../db.js'
 import { pg } from '@mg-teacher/db'
+import { normalizeEmail } from './auth.js'
 
 const { users } = pg
 type Role = 'admin' | 'teacher'
 
 // ── Middleware: require admin role ─────────────────────────────────────────────
 
+// jwtVerify() throws on a missing/expired/forged token. Letting that escape
+// turns an unauthenticated request into a 500 from the error handler instead
+// of a 401, which is both wrong for clients and noisy in the logs.
 async function requireAdmin(req: any, reply: any) {
-  await req.jwtVerify()
+  try {
+    await req.jwtVerify()
+  } catch {
+    return reply.status(401).send({ error: 'Unauthorized' })
+  }
   if (req.user?.role !== 'admin') {
     return reply.status(403).send({ error: 'Admin access required' })
   }
@@ -58,7 +66,8 @@ export async function adminRoutes(app: FastifyInstance) {
       },
     },
   }, async (req, reply) => {
-    const { email, password, firstName, lastName, role = 'teacher' } = req.body
+    const { password, firstName, lastName, role = 'teacher' } = req.body
+    const email = normalizeEmail(req.body.email)
 
     const [existing] = await db.select().from(users).where(eq(users.email, email))
     if (existing) {
@@ -81,6 +90,18 @@ export async function adminRoutes(app: FastifyInstance) {
     Body:   { firstName?: string; lastName?: string; role?: Role; password?: string }
   }>('/api/admin/teachers/:id', {
     onRequest: [requireAdmin],
+    schema: {
+      body: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          firstName: { type: 'string', minLength: 1 },
+          lastName:  { type: 'string', minLength: 1 },
+          role:      { type: 'string', enum: ['admin', 'teacher'] },
+          password:  { type: 'string', minLength: 6 },
+        },
+      },
+    },
   }, async (req, reply) => {
     const { id }                             = req.params
     const { firstName, lastName, role, password } = req.body
@@ -108,8 +129,12 @@ export async function adminRoutes(app: FastifyInstance) {
     onRequest: [requireAdmin],
   }, async (req, reply) => {
     const { id } = req.params
-    // Prevent self-deactivation
-    if ((req as any).user?.id === id) {
+    // Prevent self-deactivation. The JWT payload names the user id `sub`
+    // (see auth.ts) — reading `.id` here was always undefined, so the guard
+    // never fired and an admin could lock themselves out. With one admin on
+    // the instance that locks everyone out of the Teachers page for good,
+    // since only an admin can reset a password.
+    if ((req as any).user?.sub === id) {
       return reply.status(400).send({ error: 'Cannot deactivate yourself' })
     }
     // Lock the account by setting a random password hash

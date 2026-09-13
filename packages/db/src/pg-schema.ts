@@ -94,7 +94,12 @@ export const weeklyPlanEntries = pgTable('weekly_plan_entries', {
 export const attendances = pgTable('attendances', {
   id:         text('id').primaryKey(),
   studentId:  text('student_id').notNull().references(() => students.id),
-  scheduleId: text('schedule_id').notNull().references(() => schedules.id),
+  // Attendance is per-day per student, not per class period — see the v7
+  // migration in apps/web/src/lib/local-db.ts. `classId` is what the client
+  // writes; `scheduleId` only survives on rows recorded under the old
+  // per-period model and is never set on new ones.
+  classId:    text('class_id').references(() => classes.id),
+  scheduleId: text('schedule_id').references(() => schedules.id),
   date:       text('date').notNull(),                                    // ISO date 'YYYY-MM-DD'
   status:     text('status').$type<'absent' | 'excused'>().notNull(),
   notes:      text('notes'),
@@ -113,6 +118,7 @@ export const assessments = pgTable('assessments', {
   type:      text('type').$type<'quiz' | 'test' | 'exam' | 'homework' | 'other'>().notNull(),
   score:     integer('score').notNull(),     // 0–maxScore
   maxScore:  integer('max_score').notNull(), // default 100
+  grade:     integer('grade'),               // optional 1–5 mark alongside the raw score
   date:      text('date').notNull(),         // 'YYYY-MM-DD'
   notes:     text('notes'),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),

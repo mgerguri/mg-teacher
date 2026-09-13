@@ -8,26 +8,42 @@ import { pg } from '@mg-teacher/db'
 const { users } = pg
 type Role = 'admin' | 'teacher'
 
+// Email is the login identifier and is UNIQUE in the database, so it has to
+// be compared the same way everywhere. Without this, registering
+// "Teacher@School.com" and then signing in as "teacher@school.com" fails,
+// and the same person can end up with two accounts.
+export function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase()
+}
+
 export async function authRoutes(app: FastifyInstance) {
   // ── Register ────────────────────────────────────────────────────────────────
+  // This endpoint is unauthenticated, so whatever it is willing to grant is
+  // available to anyone who can reach the server. It used to accept a `role`
+  // from the request body, which meant `{"role":"admin"}` handed the caller
+  // an admin account — and admins read and write every teacher's data
+  // through /api/sync. The role is now fixed server-side; promoting someone
+  // to admin is an admin-only action via /api/admin/teachers.
   app.post<{
-    Body: { email: string; password: string; firstName: string; lastName: string; role?: Role }
+    Body: { email: string; password: string; firstName: string; lastName: string }
   }>('/api/auth/register', {
     schema: {
       body: {
         type: 'object',
         required: ['email', 'password', 'firstName', 'lastName'],
+        additionalProperties: false,
         properties: {
           email:     { type: 'string', format: 'email' },
           password:  { type: 'string', minLength: 8 },
-          firstName: { type: 'string' },
-          lastName:  { type: 'string' },
-          role:      { type: 'string', enum: ['admin', 'teacher'] },
+          firstName: { type: 'string', minLength: 1 },
+          lastName:  { type: 'string', minLength: 1 },
         },
       },
     },
   }, async (req, reply) => {
-    const { email, password, firstName, lastName, role = 'teacher' } = req.body
+    const { password, firstName, lastName } = req.body
+    const email: string = normalizeEmail(req.body.email)
+    const role: Role = 'teacher'
 
     const [existing] = await db.select().from(users).where(eq(users.email, email))
     if (existing) {
@@ -58,7 +74,8 @@ export async function authRoutes(app: FastifyInstance) {
       },
     },
   }, async (req, reply) => {
-    const { email, password } = req.body
+    const { password } = req.body
+    const email = normalizeEmail(req.body.email)
 
     const [user] = await db.select().from(users).where(eq(users.email, email))
     if (!user) {

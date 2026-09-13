@@ -61,8 +61,9 @@ export async function syncRoutes(app: FastifyInstance) {
       const { sub: userId, role } = req.user as AuthPayload
       const isAdmin = role === 'admin'
 
+      const syncedAt = new Date().toISOString()
+
       let classIds: string[] = []
-      let ownedScheduleIds = new Set<string>()
       let ownedStudentIds  = new Set<string>()
       let ownedPlanIds     = new Set<string>()
 
@@ -71,12 +72,10 @@ export async function syncRoutes(app: FastifyInstance) {
         classIds = ownedClasses.map(c => c.id)
 
         if (classIds.length > 0) {
-          const [scheduleRows, studentRows, planRows] = await Promise.all([
-            db.select({ id: schedules.id }).from(schedules).where(inArray(schedules.classId, classIds)),
+          const [studentRows, planRows] = await Promise.all([
             db.select({ id: students.id }).from(students).where(inArray(students.classId, classIds)),
             db.select({ id: weeklyPlans.id }).from(weeklyPlans).where(inArray(weeklyPlans.classId, classIds)),
           ])
-          ownedScheduleIds = new Set(scheduleRows.map(r => r.id))
           ownedStudentIds  = new Set(studentRows.map(r => r.id))
           ownedPlanIds     = new Set(planRows.map(r => r.id))
         }
@@ -84,8 +83,8 @@ export async function syncRoutes(app: FastifyInstance) {
 
       const [
         pulledTeachers, pulledStudents, pulledSubjects, pulledClasses, pulledSchedules,
-        pulledGrades, pulledAttendancesRaw, pulledWeeklyPlans, pulledWeeklyPlanEntriesRaw,
-        pulledConductNotesRaw, pulledContactLogsRaw, pulledAssessments,
+        pulledGrades, pulledAttendances, pulledWeeklyPlans, pulledWeeklyPlanEntries,
+        pulledConductNotes, pulledContactLogs, pulledAssessments,
       ] = await Promise.all([
         db.select({
           id:        users.id,
@@ -116,30 +115,45 @@ export async function syncRoutes(app: FastifyInstance) {
           ? db.select().from(grades).where(gt(grades.updatedAt, since))
           : classIds.length ? db.select().from(grades).where(and(gt(grades.updatedAt, since), inArray(grades.classId, classIds))) : Promise.resolve([]),
 
-        // attendances/weeklyPlanEntries/conductNotes/contactLogs don't carry
-        // a classId directly — pulled by time only, then post-filtered below
-        // using the owned schedule/plan/student id sets computed above.
-        db.select().from(attendances).where(gt(attendances.updatedAt, since)),
+        // Attendance is per-day and carries classId (see migration 0003), so
+        // it scopes exactly like grades. weeklyPlanEntries/conductNotes/
+        // contactLogs have no classId, so they scope through the owned
+        // plan/student id sets computed above. All of these used to be read
+        // in full — every row in the table for every school — and filtered
+        // in JS afterwards, which does not survive more than one school's
+        // worth of data.
+        isAdmin
+          ? db.select().from(attendances).where(gt(attendances.updatedAt, since))
+          : classIds.length ? db.select().from(attendances).where(and(gt(attendances.updatedAt, since), inArray(attendances.classId, classIds))) : Promise.resolve([]),
 
         isAdmin
           ? db.select().from(weeklyPlans).where(gt(weeklyPlans.updatedAt, since))
           : classIds.length ? db.select().from(weeklyPlans).where(and(gt(weeklyPlans.updatedAt, since), inArray(weeklyPlans.classId, classIds))) : Promise.resolve([]),
 
-        db.select().from(weeklyPlanEntries).where(gt(weeklyPlanEntries.updatedAt, since)),
-        db.select().from(conductNotes).where(gt(conductNotes.updatedAt, since)),
-        db.select().from(contactLogs).where(gt(contactLogs.updatedAt, since)),
+        isAdmin
+          ? db.select().from(weeklyPlanEntries).where(gt(weeklyPlanEntries.updatedAt, since))
+          : ownedPlanIds.size ? db.select().from(weeklyPlanEntries).where(and(gt(weeklyPlanEntries.updatedAt, since), inArray(weeklyPlanEntries.planId, [...ownedPlanIds]))) : Promise.resolve([]),
+
+        isAdmin
+          ? db.select().from(conductNotes).where(gt(conductNotes.updatedAt, since))
+          : ownedStudentIds.size ? db.select().from(conductNotes).where(and(gt(conductNotes.updatedAt, since), inArray(conductNotes.studentId, [...ownedStudentIds]))) : Promise.resolve([]),
+
+        isAdmin
+          ? db.select().from(contactLogs).where(gt(contactLogs.updatedAt, since))
+          : ownedStudentIds.size ? db.select().from(contactLogs).where(and(gt(contactLogs.updatedAt, since), inArray(contactLogs.studentId, [...ownedStudentIds]))) : Promise.resolve([]),
 
         isAdmin
           ? db.select().from(assessments).where(gt(assessments.updatedAt, since))
           : classIds.length ? db.select().from(assessments).where(and(gt(assessments.updatedAt, since), inArray(assessments.classId, classIds))) : Promise.resolve([]),
       ])
 
-      const pulledAttendances       = isAdmin ? pulledAttendancesRaw       : pulledAttendancesRaw.filter(a => ownedScheduleIds.has(a.scheduleId))
-      const pulledWeeklyPlanEntries = isAdmin ? pulledWeeklyPlanEntriesRaw : pulledWeeklyPlanEntriesRaw.filter(e => ownedPlanIds.has(e.planId))
-      const pulledConductNotes      = isAdmin ? pulledConductNotesRaw      : pulledConductNotesRaw.filter(n => ownedStudentIds.has(n.studentId))
-      const pulledContactLogs       = isAdmin ? pulledContactLogsRaw       : pulledContactLogsRaw.filter(l => ownedStudentIds.has(l.studentId))
-
       return reply.send({
+        // The client stores this verbatim and sends it back as the next
+        // ?since=. It has to be the server's clock, captured *before* the
+        // reads above: using the client's own clock (what the client used to
+        // do) silently skips every record written in the gap between the two
+        // clocks, and skips anything written while this request was running.
+        syncedAt,
         teachers:          pulledTeachers,
         students:          pulledStudents,
         subjects:          pulledSubjects,
@@ -174,9 +188,13 @@ export async function syncRoutes(app: FastifyInstance) {
         conductNotes: cn = [], contactLogs: clog = [], assessments: asmt = [],
       } = req.body
 
-      let students_ = s, subjects_ = su, classes_ = cl, schedules_ = sc, grades_ = gr
-      let attendances_ = at, weeklyPlans_ = wp, weeklyPlanEntries_ = wpe
-      let conductNotes_ = cn, contactLogs_ = clog, assessments_ = asmt
+      let students_ = s.filter(hasUsableTimestamps), subjects_ = su.filter(hasUsableTimestamps)
+      let classes_ = cl.filter(hasUsableTimestamps), schedules_ = sc.filter(hasUsableTimestamps)
+      let grades_ = gr.filter(hasUsableTimestamps)
+      let attendances_ = at.filter(hasUsableTimestamps), weeklyPlans_ = wp.filter(hasUsableTimestamps)
+      let weeklyPlanEntries_ = wpe.filter(hasUsableTimestamps)
+      let conductNotes_ = cn.filter(hasUsableTimestamps), contactLogs_ = clog.filter(hasUsableTimestamps)
+      let assessments_ = asmt.filter(hasUsableTimestamps)
 
       if (!isAdmin) {
         // Non-admins can only own classes/subjects as themselves. Checking
@@ -185,8 +203,8 @@ export async function syncRoutes(app: FastifyInstance) {
         // below) by re-pushing its known id with themselves as owner, so
         // filterOwned also requires whatever the row's owner already was in
         // the DB (if it exists at all) to already be the requester.
-        classes_  = await filterOwned(cl, classes,  'teacherId', v => v === userId)
-        subjects_ = await filterOwned(su, subjects, 'teacherId', v => v === userId)
+        classes_  = await filterOwned(classes_, classes,  'teacherId', v => v === userId)
+        subjects_ = await filterOwned(subjects_, subjects, 'teacherId', v => v === userId)
 
         // Ownership includes what's already in the DB *and* what's being
         // validly self-created in this same batch — a class and its
@@ -196,29 +214,30 @@ export async function syncRoutes(app: FastifyInstance) {
         const ownedClassIds = new Set([...dbOwnedClasses.map(c => c.id), ...classes_.map(c => c.id)])
         const isOwnedClass = (v: string) => ownedClassIds.has(v)
 
-        students_    = await filterOwned(s,    students,    'classId', isOwnedClass)
-        schedules_   = await filterOwned(sc,   schedules,   'classId', isOwnedClass)
-        grades_      = await filterOwned(gr,   grades,      'classId', isOwnedClass)
-        weeklyPlans_ = await filterOwned(wp,   weeklyPlans, 'classId', isOwnedClass)
-        assessments_ = await filterOwned(asmt, assessments, 'classId', isOwnedClass)
+        students_    = await filterOwned(students_,    students,    'classId', isOwnedClass)
+        schedules_   = await filterOwned(schedules_,   schedules,   'classId', isOwnedClass)
+        grades_      = await filterOwned(grades_,      grades,      'classId', isOwnedClass)
+        weeklyPlans_ = await filterOwned(weeklyPlans_, weeklyPlans, 'classId', isOwnedClass)
+        assessments_ = await filterOwned(assessments_, assessments, 'classId', isOwnedClass)
 
         const idsArr = [...ownedClassIds]
-        const [dbOwnedSchedules, dbOwnedStudents, dbOwnedPlans] = idsArr.length
+        const [dbOwnedStudents, dbOwnedPlans] = idsArr.length
           ? await Promise.all([
-              db.select({ id: schedules.id }).from(schedules).where(inArray(schedules.classId, idsArr)),
               db.select({ id: students.id }).from(students).where(inArray(students.classId, idsArr)),
               db.select({ id: weeklyPlans.id }).from(weeklyPlans).where(inArray(weeklyPlans.classId, idsArr)),
             ])
-          : [[], [], []]
+          : [[], []]
 
-        const ownedScheduleIds = new Set([...dbOwnedSchedules.map(r => r.id), ...schedules_.map(r => r.id)])
-        const ownedStudentIds  = new Set([...dbOwnedStudents.map(r => r.id),  ...students_.map(r => r.id)])
-        const ownedPlanIds     = new Set([...dbOwnedPlans.map(r => r.id),     ...weeklyPlans_.map(r => r.id)])
+        const ownedStudentIds  = new Set([...dbOwnedStudents.map(r => r.id), ...students_.map(r => r.id)])
+        const ownedPlanIds     = new Set([...dbOwnedPlans.map(r => r.id),    ...weeklyPlans_.map(r => r.id)])
 
-        attendances_       = await filterOwned(at,  attendances,       'scheduleId', v => ownedScheduleIds.has(v))
-        conductNotes_      = await filterOwned(cn,  conductNotes,      'studentId',  v => ownedStudentIds.has(v))
-        contactLogs_       = await filterOwned(clog, contactLogs,      'studentId',  v => ownedStudentIds.has(v))
-        weeklyPlanEntries_ = await filterOwned(wpe, weeklyPlanEntries, 'planId',     v => ownedPlanIds.has(v))
+        // Attendance is per-day and carries classId, not scheduleId — it was
+        // being filtered on a column the client no longer sends, which
+        // dropped every incoming attendance row on the floor.
+        attendances_       = await filterOwned(attendances_,  attendances,       'classId',    isOwnedClass)
+        conductNotes_      = await filterOwned(conductNotes_,  conductNotes,      'studentId',  v => ownedStudentIds.has(v))
+        contactLogs_       = await filterOwned(contactLogs_, contactLogs,      'studentId',  v => ownedStudentIds.has(v))
+        weeklyPlanEntries_ = await filterOwned(weeklyPlanEntries_, weeklyPlanEntries, 'planId',     v => ownedPlanIds.has(v))
       }
 
       // Staged in FK dependency order — a class and everything under it
@@ -237,9 +256,47 @@ export async function syncRoutes(app: FastifyInstance) {
       ])
       await Promise.all([upsertAttendances(attendances_), upsertWeeklyPlanEntries(weeklyPlanEntries_)])
 
-      return reply.send({ ok: true })
+      // Anything the ownership filters dropped is reported back by id. This
+      // endpoint used to answer a flat { ok: true } no matter how much it
+      // discarded, and the client took that as "all saved" and flipped every
+      // pushed record to syncStatus: 'synced' — so a rejected record was
+      // never retried and existed only on that one device.
+      return reply.send({
+        ok: true,
+        rejected: {
+          students:          rejectedIds(s,    students_),
+          subjects:          rejectedIds(su,   subjects_),
+          classes:           rejectedIds(cl,   classes_),
+          schedules:         rejectedIds(sc,   schedules_),
+          grades:            rejectedIds(gr,   grades_),
+          attendances:       rejectedIds(at,   attendances_),
+          weeklyPlans:       rejectedIds(wp,   weeklyPlans_),
+          weeklyPlanEntries: rejectedIds(wpe,  weeklyPlanEntries_),
+          conductNotes:      rejectedIds(cn,   conductNotes_),
+          contactLogs:       rejectedIds(clog, contactLogs_),
+          assessments:       rejectedIds(asmt, assessments_),
+        },
+      })
     }
   )
+}
+
+// Ids that were sent but did not survive the ownership filters.
+function rejectedIds(sent: SyncRecord[], accepted: SyncRecord[]): string[] {
+  if (sent.length === accepted.length) return []
+  const keep = new Set(accepted.map(r => r.id))
+  return sent.filter(r => !keep.has(r.id)).map(r => r.id)
+}
+
+// `updatedAt` drives every last-write-wins comparison and is written straight
+// into a timestamp column. A malformed one becomes an Invalid Date, which
+// Postgres rejects — failing the entire batch, including the records that
+// were fine.
+function hasUsableTimestamps(r: SyncRecord): boolean {
+  if (typeof r.id !== 'string' || !r.id) return false
+  if (isNaN(new Date(r.updatedAt).getTime())) return false
+  if (r.deletedAt !== undefined && r.deletedAt !== null && isNaN(new Date(r.deletedAt).getTime())) return false
+  return true
 }
 
 // ── Ownership filter ──────────────────────────────────────────────────────────
@@ -417,7 +474,10 @@ async function upsertAttendances(records: SyncRecord[]) {
   for (const r of records) {
     const fields = {
       studentId:  r.studentId  as string,
-      scheduleId: r.scheduleId as string,
+      // Per-day attendance keys off classId; scheduleId is legacy and absent
+      // on everything the client writes now (see migration 0003).
+      classId:    r.classId    as string | undefined,
+      scheduleId: r.scheduleId as string | undefined,
       date:       r.date       as string,
       status:     r.status     as 'absent' | 'excused',
       notes:      r.notes      as string | undefined,
@@ -532,6 +592,7 @@ async function upsertAssessments(records: SyncRecord[]) {
       type:      r.type      as 'quiz' | 'test' | 'exam' | 'homework' | 'other',
       score:     r.score     as number,
       maxScore:  r.maxScore  as number,
+      grade:     r.grade     as number | undefined,
       date:      r.date      as string,
       notes:     r.notes     as string | undefined,
       updatedAt: new Date(r.updatedAt),
