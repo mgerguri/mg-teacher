@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import Fastify from 'fastify'
+import Fastify, { FastifyReply, FastifyRequest } from 'fastify'
 import cors from '@fastify/cors'
 import jwt from '@fastify/jwt'
 import { authRoutes }  from './routes/auth.js'
@@ -22,7 +22,7 @@ await app.register(jwt, {
 })
 
 // Decorator used on protected routes: onRequest: [app.authenticate]
-app.decorate('authenticate', async function (req: any, reply: any) {
+app.decorate('authenticate', async function (req: FastifyRequest, reply: FastifyReply) {
   try {
     await req.jwtVerify()
   } catch {

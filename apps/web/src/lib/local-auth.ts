@@ -7,6 +7,14 @@ import { hashPassword, verifyPassword } from './password-hash'
 
 export { hashPassword, verifyPassword }
 
+// Email is the sign-in identifier, so it has to be compared the same way on
+// the way in and the way out. Without this, an account registered as
+// "Teacher@School.com" cannot be signed into as "teacher@school.com", and the
+// duplicate check below happily creates a second account for the same person.
+export function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase()
+}
+
 export interface CreateAccountInput {
   email: string
   password: string
@@ -16,12 +24,13 @@ export interface CreateAccountInput {
 }
 
 export async function createLocalAccount(input: CreateAccountInput): Promise<LocalTeacher> {
-  const existing = await localDb.teachers.where('email').equals(input.email).first()
+  const email = normalizeEmail(input.email)
+  const existing = await localDb.teachers.where('email').equals(email).first()
   if (existing) throw new Error('Email already in use')
 
   const teacher: LocalTeacher = {
     id: crypto.randomUUID(),
-    email: input.email,
+    email,
     role: input.role ?? 'teacher',
     firstName: input.firstName,
     lastName: input.lastName,
@@ -33,7 +42,7 @@ export async function createLocalAccount(input: CreateAccountInput): Promise<Loc
 }
 
 export async function verifyLocalLogin(email: string, password: string): Promise<LocalTeacher> {
-  const teacher = await localDb.teachers.where('email').equals(email).first()
+  const teacher = await localDb.teachers.where('email').equals(normalizeEmail(email)).first()
   if (!teacher?.passwordHash || !(await verifyPassword(password, teacher.passwordHash))) {
     throw new Error('Invalid credentials')
   }

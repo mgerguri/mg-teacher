@@ -31,8 +31,8 @@ export default function LoginPage() {
         await login(email, password)
       }
       navigate('/')
-    } catch (err: any) {
-      setError(err.message ?? t('auth.somethingWentWrong'))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('auth.somethingWentWrong'))
     } finally {
       setLoading(false)
     }
@@ -44,8 +44,8 @@ export default function LoginPage() {
     try {
       await login(DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_PASSWORD)
       navigate('/')
-    } catch (err: any) {
-      setError(err.message ?? t('auth.somethingWentWrong'))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('auth.somethingWentWrong'))
     } finally {
       setLoading(false)
     }

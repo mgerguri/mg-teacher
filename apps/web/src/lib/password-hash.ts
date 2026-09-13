@@ -31,9 +31,19 @@ export async function hashPassword(password: string): Promise<string> {
   return `${toHex(salt)}:${hash}`
 }
 
+// Compared without an early exit so the time taken doesn't depend on how many
+// leading characters matched. `===` on strings short-circuits at the first
+// difference, which leaks that prefix length to anything able to time it.
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  let diff = 0
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  return diff === 0
+}
+
 export async function verifyPassword(password: string, stored: string): Promise<boolean> {
   const [saltHex, hashHex] = stored.split(':')
   if (!saltHex || !hashHex) return false
   const hash = await derive(password, fromHex(saltHex))
-  return hash === hashHex
+  return timingSafeEqual(hash, hashHex)
 }

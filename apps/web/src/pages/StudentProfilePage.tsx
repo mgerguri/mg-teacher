@@ -61,7 +61,9 @@ async function downloadProgressReport(
       columnStyles: { 1: { halign: 'center' } },
       margin: { left: 14, right: 14 },
     })
-    y = (doc as any).lastAutoTable.finalY + 8
+    // jspdf-autotable records where the table ended on the doc instance;
+    // it isn't part of jsPDF's own published types.
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8
   }
 
   // ── Attendance ───────────────────────────────────────────────────────────────

@@ -111,7 +111,6 @@
     "lastName": "Last name",
     "dateOfBirth": "Date of birth",
     "class": "Class",
-    "noClass": "No class",
     "email": "Email",
     "emailPlaceholder": "student@school.com",
     "phone": "Phone",

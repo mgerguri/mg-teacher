@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import bcrypt from 'bcryptjs'
 import { randomUUID } from 'crypto'
 import { eq } from 'drizzle-orm'
@@ -10,8 +10,14 @@ type Role = 'admin' | 'teacher'
 
 // ── Middleware: require admin role ─────────────────────────────────────────────
 
-async function requireAdmin(req: any, reply: any) {
-  await req.jwtVerify()
+// jwtVerify() throws on a missing/expired/forged token; letting that escape
+// turns an unauthenticated request into a 500 instead of a 401.
+async function requireAdmin(req: FastifyRequest, reply: FastifyReply) {
+  try {
+    await req.jwtVerify()
+  } catch {
+    return reply.status(401).send({ error: 'Unauthorized' })
+  }
   if (req.user?.role !== 'admin') {
     return reply.status(403).send({ error: 'Admin access required' })
   }
@@ -108,8 +114,9 @@ export async function adminRoutes(app: FastifyInstance) {
     onRequest: [requireAdmin],
   }, async (req, reply) => {
     const { id } = req.params
-    // Prevent self-deactivation
-    if ((req as any).user?.id === id) {
+    // Prevent self-deactivation. The JWT payload names the user id `sub`, so
+    // reading `.id` here was always undefined and the guard never fired.
+    if (req.user?.sub === id) {
       return reply.status(400).send({ error: 'Cannot deactivate yourself' })
     }
     // Lock the account by setting a random password hash

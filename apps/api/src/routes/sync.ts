@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify'
-import { gt } from 'drizzle-orm'
+import { gt, lt } from 'drizzle-orm'
 import { db } from '../db.js'
 import { pg } from '@mg-teacher/db'
 
@@ -145,7 +145,7 @@ async function upsertStudents(records: SyncRecord[]) {
     }).onConflictDoUpdate({
       target: students.id,
       set: fields,
-      setWhere: gt(new Date(r.updatedAt), students.updatedAt),
+      setWhere: lt(students.updatedAt, new Date(r.updatedAt)),
     })
   }
 }
@@ -171,7 +171,7 @@ async function upsertSubjects(records: SyncRecord[]) {
         updatedAt:   new Date(r.updatedAt),
         deletedAt:   r.deletedAt ? new Date(r.deletedAt as string) : null,
       },
-      setWhere: gt(new Date(r.updatedAt), subjects.updatedAt),
+      setWhere: lt(subjects.updatedAt, new Date(r.updatedAt)),
     })
   }
 }
@@ -195,7 +195,7 @@ async function upsertClasses(records: SyncRecord[]) {
         updatedAt:    new Date(r.updatedAt),
         deletedAt:    r.deletedAt ? new Date(r.deletedAt as string) : null,
       },
-      setWhere: gt(new Date(r.updatedAt), classes.updatedAt),
+      setWhere: lt(classes.updatedAt, new Date(r.updatedAt)),
     })
   }
 }
@@ -225,7 +225,7 @@ async function upsertSchedules(records: SyncRecord[]) {
         updatedAt: new Date(r.updatedAt),
         deletedAt: r.deletedAt ? new Date(r.deletedAt as string) : null,
       },
-      setWhere: gt(new Date(r.updatedAt), schedules.updatedAt),
+      setWhere: lt(schedules.updatedAt, new Date(r.updatedAt)),
     })
   }
 }
@@ -248,7 +248,7 @@ async function upsertGrades(records: SyncRecord[]) {
       .onConflictDoUpdate({
         target: grades.id,
         set: fields,
-        setWhere: gt(new Date(r.updatedAt), grades.updatedAt),
+        setWhere: lt(grades.updatedAt, new Date(r.updatedAt)),
       })
   }
 }
@@ -270,7 +270,7 @@ async function upsertAttendances(records: SyncRecord[]) {
       .onConflictDoUpdate({
         target: attendances.id,
         set: fields,
-        setWhere: gt(new Date(r.updatedAt), attendances.updatedAt),
+        setWhere: lt(attendances.updatedAt, new Date(r.updatedAt)),
       })
   }
 }
@@ -290,7 +290,7 @@ async function upsertWeeklyPlans(records: SyncRecord[]) {
       .onConflictDoUpdate({
         target: weeklyPlans.id,
         set: fields,
-        setWhere: gt(new Date(r.updatedAt), weeklyPlans.updatedAt),
+        setWhere: lt(weeklyPlans.updatedAt, new Date(r.updatedAt)),
       })
   }
 }
@@ -313,7 +313,7 @@ async function upsertWeeklyPlanEntries(records: SyncRecord[]) {
       .onConflictDoUpdate({
         target: weeklyPlanEntries.id,
         set: fields,
-        setWhere: gt(new Date(r.updatedAt), weeklyPlanEntries.updatedAt),
+        setWhere: lt(weeklyPlanEntries.updatedAt, new Date(r.updatedAt)),
       })
   }
 }
@@ -334,7 +334,7 @@ async function upsertConductNotes(records: SyncRecord[]) {
       .onConflictDoUpdate({
         target: conductNotes.id,
         set: fields,
-        setWhere: gt(new Date(r.updatedAt), conductNotes.updatedAt),
+        setWhere: lt(conductNotes.updatedAt, new Date(r.updatedAt)),
       })
   }
 }
@@ -356,7 +356,7 @@ async function upsertContactLogs(records: SyncRecord[]) {
       .onConflictDoUpdate({
         target: contactLogs.id,
         set: fields,
-        setWhere: gt(new Date(r.updatedAt), contactLogs.updatedAt),
+        setWhere: lt(contactLogs.updatedAt, new Date(r.updatedAt)),
       })
   }
 }
@@ -382,7 +382,7 @@ async function upsertAssessments(records: SyncRecord[]) {
       .onConflictDoUpdate({
         target: assessments.id,
         set: fields,
-        setWhere: gt(new Date(r.updatedAt), assessments.updatedAt),
+        setWhere: lt(assessments.updatedAt, new Date(r.updatedAt)),
       })
   }
 }

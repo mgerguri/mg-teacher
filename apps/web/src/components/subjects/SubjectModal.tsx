@@ -37,6 +37,11 @@ export default function SubjectModal({ subject, teachers, isAdmin, currentUserId
       description: subject?.description ?? '',
       teacherId:   subject?.teacherId   ?? '',
     })
+    // Deliberately keyed on the subject's identity alone: this resets the form
+    // when a different subject is opened. Depending on the individual fields
+    // would re-clobber whatever the user is typing every time the parent
+    // re-renders with a new `subject` object.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subject?.id])
 
   function set<K extends keyof SubjectFormState>(key: K, value: string) {

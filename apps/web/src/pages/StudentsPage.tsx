@@ -87,7 +87,11 @@ export default function StudentsPage() {
         updatedAt:  now,
         syncStatus: 'pending',
         ...data,
-        classId:    classId ?? data.classId,
+        // The form's class always wins: it is seeded from this page's class
+        // and can only be changed to another of the teacher's own classes.
+        // Hardcoding the URL's classId here meant picking a different class
+        // in the modal was silently ignored on create (but honoured on edit).
+        classId:    data.classId || classId,
       })
     }
     setModal({ open: false, student: null })
@@ -118,7 +122,9 @@ export default function StudentsPage() {
       parentEmail: r.parentEmail || undefined,
       address:     r.address || undefined,
       notes:       r.notes || undefined,
-      classId:     classId ?? r.classId,
+      // Imported students join the class being viewed — the column map has
+      // no classId, so there was never a value to fall back to.
+      classId,
       enrolledAt:  now,
       updatedAt:   now,
       syncStatus:  'pending' as const,

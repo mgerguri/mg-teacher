@@ -63,8 +63,8 @@ function TeacherModal({
         })
       }
       onDone()
-    } catch (err: any) {
-      setError(err.message ?? 'Something went wrong')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
       setSaving(false)
     }
@@ -75,8 +75,8 @@ function TeacherModal({
     try {
       await localDb.teachers.delete(teacher!.id)
       onDone()
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
       setSaving(false)
       setConfirming(false)
@@ -201,17 +201,22 @@ export default function TeachersPage() {
   const [teachers, setTeachers] = useState<LocalTeacher[]>([])
   const [modal, setModal]       = useState<{ open: boolean; teacher: LocalTeacher | null }>({ open: false, teacher: null })
 
-  // Admin guard
-  if (user?.role !== 'admin') {
-    return <div className="p-6 text-sm text-gray-400">{t('teachers.adminOnly')}</div>
-  }
-
   const reload = useCallback(async () => {
     const all = await localDb.teachers.toArray()
     setTeachers(all.sort((a, b) => a.lastName.localeCompare(b.lastName)))
   }, [])
 
   useEffect(() => { reload() }, [reload])
+
+  // Admin guard. This has to come *after* every hook: React identifies hooks
+  // by call order, so a render where the user is not (yet) an admin calls
+  // fewer hooks than one where they are, and the transition throws "Rendered
+  // more hooks than during the previous render". AuthContext restores the
+  // signed-in teacher asynchronously from IndexedDB, so `user` really does
+  // start out null here.
+  if (user?.role !== 'admin') {
+    return <div className="p-6 text-sm text-gray-400">{t('teachers.adminOnly')}</div>
+  }
 
   function handleDone() {
     setModal({ open: false, teacher: null })
