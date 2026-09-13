@@ -65,7 +65,13 @@ export async function restoreBackup(file: File): Promise<void> {
   if (!isBackupFile(parsed) || parsed.format !== BACKUP_FORMAT_VERSION) {
     throw new BackupRestoreError('format')
   }
-  if (parsed.schemaVersion !== localDb.verno) {
+  // Only refuse backups from a *newer* schema than this build understands.
+  // Requiring an exact match meant every schema bump silently invalidated
+  // every backup a user had already taken — the opposite of what a backup is
+  // for, given this is the only copy of their data on the desktop build.
+  // Older backups are fine: Dexie has already migrated the live database, and
+  // restored rows go through the same tables as any other write.
+  if (parsed.schemaVersion > localDb.verno) {
     throw new BackupRestoreError('version')
   }
 

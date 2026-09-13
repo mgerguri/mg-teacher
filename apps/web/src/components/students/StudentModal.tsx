@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { LocalStudent, LocalClass } from '../../lib/local-db'
 
@@ -39,7 +39,11 @@ export default function StudentModal({ student, classes, defaultClassId, onSave,
     parentEmail: student?.parentEmail ?? '',
     address:     student?.address     ?? '',
     notes:       student?.notes       ?? '',
-    classId:     student?.classId     ?? defaultClassId ?? '',
+    // Every student belongs to a class — that is what scopes them to a
+    // teacher. `classes` is already the caller's own scoped list, so falling
+    // back to its first entry cannot assign someone else's class, and it
+    // also heals any legacy student that predates this rule.
+    classId:     student?.classId     ?? defaultClassId ?? classes[0]?.id ?? '',
   })
 
   function set<K extends keyof StudentFormState>(k: K, v: string) {
@@ -91,11 +95,11 @@ export default function StudentModal({ student, classes, defaultClassId, onSave,
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">{t('studentModal.class')}</label>
                 <select
+                  required
                   value={form.classId}
                   onChange={e => set('classId', e.target.value)}
                   className="w-full h-9 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">{t('studentModal.noClass')}</option>
                   {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>

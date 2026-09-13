@@ -82,6 +82,24 @@ JWT_SECRET=change-me-in-production
 PORT=3000
 ```
 
+Optional settings:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `CORS_ORIGIN` | `http://localhost:5173` | Comma-separated list of origins allowed to call the API. Set this to your frontend's real origin when deploying. |
+| `SEED_DEFAULT_ADMIN` | `true` outside production | Whether to seed the default admin into an empty database. |
+| `DEFAULT_ADMIN_EMAIL` | `teacher@school.com` | Email for the seeded admin. |
+| `DEFAULT_ADMIN_PASSWORD` | `password123` | Password for the seeded admin. |
+
+**Before deploying:**
+
+- `JWT_SECRET` is **required** when `NODE_ENV=production` — the server refuses
+  to start without it. Anyone who knows the signing secret can mint a token
+  for any user with any role, so it must not be the value above.
+- The default admin is only seeded into a database with no users at all, and
+  only outside production unless you set `SEED_DEFAULT_ADMIN=true`. If you do
+  seed it, change the password immediately from the Teachers page.
+
 ### 3. Create the database
 
 **Option A — Docker (recommended, no install needed):**

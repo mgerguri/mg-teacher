@@ -39,7 +39,9 @@ export default function GradesPage() {
     localDb.classes.filter(c => !c.deletedAt).toArray().then(all => {
       const sorted = scopeClasses(all, user).sort((a, b) => a.name.localeCompare(b.name))
       setClasses(sorted)
-      if (sorted.length > 0 && !classId) setClassId(sorted[0].id)
+      // See AttendancePage: functional form avoids a stale `classId` read
+      // when this effect re-runs on a new `user` identity.
+      setClassId(prev => prev || sorted[0]?.id || '')
     })
   }, [user])
 

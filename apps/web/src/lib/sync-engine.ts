@@ -5,7 +5,26 @@ const LAST_SYNCED_KEY = 'mg_teacher_last_synced_at'
 
 // ── Types matching what the API returns ───────────────────────────────────────
 
+type SyncTable =
+  | 'students' | 'subjects' | 'classes' | 'schedules' | 'grades' | 'attendances'
+  | 'weeklyPlans' | 'weeklyPlanEntries' | 'conductNotes' | 'contactLogs' | 'assessments'
+
+const SYNC_TABLES: SyncTable[] = [
+  'students', 'subjects', 'classes', 'schedules', 'grades', 'attendances',
+  'weeklyPlans', 'weeklyPlanEntries', 'conductNotes', 'contactLogs', 'assessments',
+]
+
+interface SyncPushResponse {
+  ok: boolean
+  // Ids the server refused (ownership filters). Absent when talking to an
+  // older API, which is treated as "nothing rejected".
+  rejected?: Partial<Record<SyncTable, string[]>>
+}
+
 interface SyncPullResponse {
+  // Server clock, captured before the server read anything. Stored verbatim
+  // and sent back as the next ?since=.
+  syncedAt?: string
   teachers:          ServerRecord[]
   students:          ServerRecord[]
   subjects:          ServerRecord[]
@@ -27,6 +46,16 @@ interface ServerRecord {
   [key: string]: unknown
 }
 
+// The shape every synced table shares. Enough to drive push/pull generically
+// without reaching for `any` at each call site.
+interface SyncedRow {
+  id: string
+  updatedAt: string
+  syncStatus: SyncStatus
+}
+
+type AnySyncTable = Dexie.Table<SyncedRow, string>
+
 // Returns true if incoming record is newer than what we have locally.
 function isNewer(incoming: string, existing: string | undefined): boolean {
   if (!existing) return true
@@ -39,49 +68,54 @@ export class SyncEngine {
   // ── Push ────────────────────────────────────────────────────────────────────
 
   async push(token: string): Promise<void> {
-    const [students, subjects, classes, schedules, grades, attendances, weeklyPlans, weeklyPlanEntries, conductNotes, contactLogs, assessments] = await Promise.all([
-      localDb.students.where('syncStatus').equals('pending').toArray(),
-      localDb.subjects.where('syncStatus').equals('pending').toArray(),
-      localDb.classes.where('syncStatus').equals('pending').toArray(),
-      localDb.schedules.where('syncStatus').equals('pending').toArray(),
-      localDb.grades.where('syncStatus').equals('pending').toArray(),
-      localDb.attendances.where('syncStatus').equals('pending').toArray(),
-      localDb.weeklyPlans.where('syncStatus').equals('pending').toArray(),
-      localDb.weeklyPlanEntries.where('syncStatus').equals('pending').toArray(),
-      localDb.conductNotes.where('syncStatus').equals('pending').toArray(),
-      localDb.contactLogs.where('syncStatus').equals('pending').toArray(),
-      localDb.assessments.where('syncStatus').equals('pending').toArray(),
-    ])
+    const pending = {} as Record<SyncTable, SyncedRow[]>
+    await Promise.all(
+      SYNC_TABLES.map(async name => {
+        pending[name] = await (localDb[name] as AnySyncTable).where('syncStatus').equals('pending').toArray()
+      })
+    )
 
-    const hasPending = [students, subjects, classes, schedules, grades, attendances, weeklyPlans, weeklyPlanEntries, conductNotes, contactLogs, assessments]
-      .reduce((n, arr) => n + arr.length, 0) > 0
+    const hasPending = SYNC_TABLES.some(name => pending[name].length > 0)
     if (!hasPending) return
 
     const res = await fetch('/api/sync/push', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ students, subjects, classes, schedules, grades, attendances, weeklyPlans, weeklyPlanEntries, conductNotes, contactLogs, assessments }),
+      body: JSON.stringify(pending),
     })
 
     if (!res.ok) throw new Error(`Push failed: ${res.status}`)
 
-    await localDb.transaction('rw', [
-      localDb.students, localDb.subjects, localDb.classes, localDb.schedules,
-      localDb.grades, localDb.attendances, localDb.weeklyPlans, localDb.weeklyPlanEntries,
-      localDb.conductNotes, localDb.contactLogs, localDb.assessments,
-    ], async () => {
-      for (const s of students)          await localDb.students.update(s.id,          { syncStatus: 'synced' })
-      for (const s of subjects)          await localDb.subjects.update(s.id,          { syncStatus: 'synced' })
-      for (const c of classes)           await localDb.classes.update(c.id,           { syncStatus: 'synced' })
-      for (const s of schedules)         await localDb.schedules.update(s.id,         { syncStatus: 'synced' })
-      for (const g of grades)            await localDb.grades.update(g.id,            { syncStatus: 'synced' })
-      for (const a of attendances)       await localDb.attendances.update(a.id,       { syncStatus: 'synced' })
-      for (const p of weeklyPlans)       await localDb.weeklyPlans.update(p.id,       { syncStatus: 'synced' })
-      for (const e of weeklyPlanEntries) await localDb.weeklyPlanEntries.update(e.id, { syncStatus: 'synced' })
-      for (const n of conductNotes)      await localDb.conductNotes.update(n.id,      { syncStatus: 'synced' })
-      for (const l of contactLogs)       await localDb.contactLogs.update(l.id,       { syncStatus: 'synced' })
-      for (const a of assessments)       await localDb.assessments.update(a.id,       { syncStatus: 'synced' })
+    const body: SyncPushResponse = await res.json().catch(() => ({ ok: true }))
+
+    await localDb.transaction('rw', SYNC_TABLES.map(name => localDb[name]), async () => {
+      for (const name of SYNC_TABLES) {
+        const table = localDb[name] as AnySyncTable
+        const rejected = new Set(body.rejected?.[name] ?? [])
+
+        for (const sent of pending[name]) {
+          // The server told us it discarded this one (it belongs to another
+          // teacher's class, or to no class at all). Leaving it pending keeps
+          // it on the retry queue instead of pretending it was saved.
+          if (rejected.has(sent.id)) continue
+
+          // The record may have been edited again between reading it above and
+          // the push completing — that edit set syncStatus back to 'pending'
+          // and was never sent, so marking it 'synced' here would strand it
+          // locally forever. updatedAt is bumped on every write, so a changed
+          // value means exactly that.
+          const current = await table.get(sent.id)
+          if (!current || current.updatedAt !== sent.updatedAt) continue
+
+          await table.update(sent.id, { syncStatus: 'synced' })
+        }
+      }
     })
+
+    const rejectedCount = SYNC_TABLES.reduce((n, name) => n + (body.rejected?.[name]?.length ?? 0), 0)
+    if (rejectedCount > 0) {
+      console.warn(`[sync] server rejected ${rejectedCount} record(s); they stay pending`, body.rejected)
+    }
   }
 
   // ── Pull ────────────────────────────────────────────────────────────────────
@@ -132,20 +166,21 @@ export class SyncEngine {
       }
     )
 
-    localStorage.setItem(LAST_SYNCED_KEY, new Date().toISOString())
+    // Prefer the server's own timestamp. Stamping this with the client clock
+    // means any skew (or anything written server-side while this request was
+    // running) falls into a window that is never requested again, and those
+    // records simply never arrive.
+    localStorage.setItem(LAST_SYNCED_KEY, data.syncedAt ?? new Date().toISOString())
   }
 
   // ── Merge (LWW) ─────────────────────────────────────────────────────────────
 
-  private async mergeTable(
-    table: 'students' | 'subjects' | 'classes' | 'schedules' | 'grades' | 'attendances' | 'weeklyPlans' | 'weeklyPlanEntries' | 'conductNotes' | 'contactLogs' | 'assessments',
-    records: ServerRecord[]
-  ): Promise<void> {
+  private async mergeTable(table: SyncTable, records: ServerRecord[]): Promise<void> {
     if (records.length === 0) return
 
-    const dexieTable = localDb[table] as Dexie.Table<{ id: string; updatedAt: string; syncStatus: SyncStatus }>
+    const dexieTable = localDb[table] as AnySyncTable
     const existing = await dexieTable.bulkGet(records.map(r => r.id))
-    const toUpsert: object[] = []
+    const toUpsert: SyncedRow[] = []
 
     for (let i = 0; i < records.length; i++) {
       const server = records[i]
@@ -155,11 +190,11 @@ export class SyncEngine {
         continue // keep the newer local pending write
       }
 
-      toUpsert.push({ ...server, syncStatus: 'synced' })
+      toUpsert.push({ ...server, syncStatus: 'synced' } as SyncedRow)
     }
 
     if (toUpsert.length > 0) {
-      await (dexieTable as any).bulkPut(toUpsert)
+      await dexieTable.bulkPut(toUpsert)
     }
   }
 
