@@ -1,6 +1,7 @@
 {
   "update": {
     "available": "A new version ({{version}}) is available.",
+    "whatsNew": "What's new",
     "download": "Download",
     "dismiss": "Dismiss"
   },

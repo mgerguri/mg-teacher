@@ -21,6 +21,13 @@ export function getDownloadUrlForCurrentOs(): string {
   return isMac ? MACOS_DOWNLOAD_URL : WINDOWS_DOWNLOAD_URL
 }
 
+// The release job tags each GitHub Release `desktop-v<version>` and fills
+// its body from that version's CHANGELOG.md section, so this always points
+// at real release notes for the version being offered.
+export function getReleaseNotesUrl(version: string): string {
+  return `https://github.com/mgerguri/mg-teacher/releases/tag/desktop-v${version}`
+}
+
 export interface UpdateCheckResult {
   currentVersion: string
   latestVersion: string

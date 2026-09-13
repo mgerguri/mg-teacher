@@ -89,9 +89,26 @@ jobs:
           fi
           ls -la release-assets
 
+      - name: Extract this version's changelog section for the release body
+        run: |
+          awk -v ver="${{ steps.version.outputs.version }}" '
+            BEGIN { found = 0 }
+            /^## \[/ {
+              if (found) exit
+              if (index($0, "[" ver "]") > 0) { found = 1; next }
+              next
+            }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "_No changelog entry for this version — see CHANGELOG.md._" > release-notes.md
+          fi
+          cat release-notes.md
+
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: desktop-v${{ steps.version.outputs.version }}
           name: MG Teacher Desktop v${{ steps.version.outputs.version }}
           make_latest: true
+          body_path: release-notes.md
           files: release-assets/*
