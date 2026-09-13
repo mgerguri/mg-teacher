@@ -51,7 +51,10 @@
     "createAccount": "Create account",
     "createAccountSubtitle": "Set up your local account to get started",
     "firstName": "First name",
-    "lastName": "Last name"
+    "lastName": "Last name",
+    "haveAccount": "Already have an account? Sign in",
+    "needAccount": "New here? Create an account",
+    "loginAsAdmin": "Log in as admin"
   },
   "classes": {
     "title": "Classes",

@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { localDb } from '../lib/local-db'
-import { hasAnyAccount, createLocalAccount, verifyLocalLogin, CreateAccountInput } from '../lib/local-auth'
+import { createLocalAccount, verifyLocalLogin, CreateAccountInput } from '../lib/local-auth'
 
 export type Role = 'admin' | 'teacher'
 
@@ -15,8 +15,6 @@ export interface AuthUser {
 interface AuthContextValue {
   user: AuthUser | null
   isLoading: boolean
-  // True until the first local account has been created on this device.
-  needsSetup: boolean
   login: (email: string, password: string) => Promise<void>
   createAccount: (input: Omit<CreateAccountInput, 'role'>) => Promise<void>
   logout: () => void
@@ -34,15 +32,10 @@ function toAuthUser(teacher: { id: string; email: string; firstName: string; las
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [needsSetup, setNeedsSetup] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     async function restore() {
-      const anyAccount = await hasAnyAccount()
-      if (cancelled) return
-      setNeedsSetup(!anyAccount)
-
       const savedId = localStorage.getItem(SESSION_KEY)
       if (savedId) {
         const teacher = await localDb.teachers.get(savedId)
@@ -63,11 +56,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function createAccount(input: Omit<CreateAccountInput, 'role'>) {
-    // Desktop installs are single-teacher by default — the first account is
-    // a regular teacher, not an admin, so the Teachers admin page (gated to
-    // role === 'admin') stays hidden for the common solo-teacher case.
+    // Self-serve registration always creates a regular teacher, never an
+    // admin — the seeded default admin (see local-db.ts) is the only way to
+    // reach the Teachers admin page and promote/create other admins.
     const teacher = await createLocalAccount({ ...input, role: 'teacher' })
-    setNeedsSetup(false)
     localStorage.setItem(SESSION_KEY, teacher.id)
     setUser(toAuthUser(teacher))
   }
@@ -78,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, needsSetup, login, createAccount, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, createAccount, logout }}>
       {children}
     </AuthContext.Provider>
   )

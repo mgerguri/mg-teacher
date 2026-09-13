@@ -1,4 +1,13 @@
 import Dexie, { Table } from 'dexie'
+import { hashPassword } from './password-hash'
+
+// Seeded once into a brand-new install (see the `populate` hook below) so
+// there's always a working admin login without forcing the first run
+// through self-serve registration. Shown on the login screen as a quick
+// sign-in option; the admin can change the password afterward from the
+// Teachers page.
+export const DEFAULT_ADMIN_EMAIL = 'admin@teacher.com'
+export const DEFAULT_ADMIN_PASSWORD = 'admin'
 
 // ── Local entity types ────────────────────────────────────────────────────────
 // These mirror the server schema. `syncStatus` tracks whether local writes
@@ -247,6 +256,30 @@ class LocalDatabase extends Dexie {
         if (!rec.deletedAt && !keptIds.has(rec.id)) {
           rec.deletedAt = now
         }
+      })
+    })
+
+    // Fires exactly once, the first time this database is ever created on a
+    // device — not on every app launch, and not after a backup restore
+    // (restore only clears/refills existing tables, it never recreates the
+    // database). Ships every fresh install with a working admin login
+    // instead of forcing the first run through self-serve registration.
+    this.on('populate', async () => {
+      // hashPassword() resolves via native Web Crypto promises, not Dexie's
+      // own — awaiting it directly would drop out of the upgrade
+      // transaction's zone, so the add() below would silently run in a new,
+      // unsynchronized transaction that could still be in flight when the
+      // app's very first login attempt reads the table. Dexie.waitFor keeps
+      // the transaction open across the await.
+      const passwordHash = await Dexie.waitFor(hashPassword(DEFAULT_ADMIN_PASSWORD))
+      await this.teachers.add({
+        id: crypto.randomUUID(),
+        email: DEFAULT_ADMIN_EMAIL,
+        role: 'admin',
+        firstName: 'Admin',
+        lastName: 'Account',
+        updatedAt: new Date().toISOString(),
+        passwordHash,
       })
     })
   }

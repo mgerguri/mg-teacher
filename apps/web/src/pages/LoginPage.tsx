@@ -2,11 +2,15 @@ import { useState, FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
+import { DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_PASSWORD } from '../lib/local-db'
+
+type Mode = 'signin' | 'register'
 
 export default function LoginPage() {
-  const { login, createAccount, needsSetup } = useAuth()
+  const { login, createAccount } = useAuth()
   const navigate  = useNavigate()
   const { t }     = useTranslation()
+  const [mode,      setMode]      = useState<Mode>('signin')
   const [firstName, setFirstName] = useState('')
   const [lastName,  setLastName]  = useState('')
   const [email,    setEmail]    = useState('')
@@ -14,12 +18,14 @@ export default function LoginPage() {
   const [error,    setError]    = useState<string | null>(null)
   const [loading,  setLoading]  = useState(false)
 
+  const isRegister = mode === 'register'
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
     setLoading(true)
     try {
-      if (needsSetup) {
+      if (isRegister) {
         await createAccount({ email, password, firstName, lastName })
       } else {
         await login(email, password)
@@ -32,18 +38,36 @@ export default function LoginPage() {
     }
   }
 
+  async function handleAdminLogin() {
+    setError(null)
+    setLoading(true)
+    try {
+      await login(DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_PASSWORD)
+      navigate('/')
+    } catch (err: any) {
+      setError(err.message ?? t('auth.somethingWentWrong'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function toggleMode() {
+    setMode(m => m === 'signin' ? 'register' : 'signin')
+    setError(null)
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
         <h1 className="text-xl font-semibold text-gray-900 mb-1">
-          {needsSetup ? t('auth.createAccount') : t('auth.signIn')}
+          {isRegister ? t('auth.createAccount') : t('auth.signIn')}
         </h1>
         <p className="text-sm text-gray-500 mb-6">
-          {needsSetup ? t('auth.createAccountSubtitle') : 'MG Teacher'}
+          {isRegister ? t('auth.createAccountSubtitle') : 'MG Teacher'}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {needsSetup && (
+          {isRegister && (
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('auth.firstName')}</label>
@@ -83,7 +107,7 @@ export default function LoginPage() {
             <input
               type="password"
               required
-              minLength={needsSetup ? 8 : undefined}
+              minLength={isRegister ? 8 : undefined}
               value={password}
               onChange={e => setPassword(e.target.value)}
               className="w-full h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -100,9 +124,33 @@ export default function LoginPage() {
           >
             {loading
               ? t('auth.signingIn')
-              : needsSetup ? t('auth.createAccount') : t('auth.signIn')}
+              : isRegister ? t('auth.createAccount') : t('auth.signIn')}
           </button>
         </form>
+
+        <button
+          type="button"
+          onClick={toggleMode}
+          className="w-full text-center text-xs text-gray-500 hover:text-gray-700 mt-4 transition-colors"
+        >
+          {isRegister ? t('auth.haveAccount') : t('auth.needAccount')}
+        </button>
+
+        {!isRegister && (
+          <div className="mt-6 pt-5 border-t border-gray-100 text-center">
+            <button
+              type="button"
+              onClick={handleAdminLogin}
+              disabled={loading}
+              className="text-xs text-gray-500 hover:text-gray-800 disabled:opacity-50 transition-colors"
+            >
+              {t('auth.loginAsAdmin')}
+            </button>
+            <p className="text-[11px] text-gray-300 mt-1">
+              {DEFAULT_ADMIN_EMAIL} / {DEFAULT_ADMIN_PASSWORD}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )

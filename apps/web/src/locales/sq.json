@@ -51,7 +51,10 @@
     "createAccount": "Krijo llogari",
     "createAccountSubtitle": "Krijoni llogarinë tuaj lokale për të filluar",
     "firstName": "Emri",
-    "lastName": "Mbiemri"
+    "lastName": "Mbiemri",
+    "haveAccount": "Keni tashmë një llogari? Hyni",
+    "needAccount": "I ri këtu? Krijo një llogari",
+    "loginAsAdmin": "Hyni si administrator"
   },
   "classes": {
     "title": "Klasat",
