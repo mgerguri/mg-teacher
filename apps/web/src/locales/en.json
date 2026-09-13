@@ -42,7 +42,8 @@
     "email": "Email",
     "password": "Password",
     "emailPlaceholder": "you@school.com",
-    "somethingWentWrong": "Something went wrong"
+    "somethingWentWrong": "Something went wrong",
+    "loginAsAdmin": "Log in as admin"
   },
   "classes": {
     "title": "Classes",

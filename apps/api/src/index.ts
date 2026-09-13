@@ -6,9 +6,11 @@ import { authRoutes }  from './routes/auth.js'
 import { syncRoutes }  from './routes/sync.js'
 import { adminRoutes } from './routes/admin.js'
 import { runMigrations } from './migrate.js'
+import { ensureDefaultAdmin } from './ensure-default-admin.js'
 
 // Run DB migrations before starting the server
 await runMigrations()
+await ensureDefaultAdmin()
 
 const app = Fastify({ logger: true })
 

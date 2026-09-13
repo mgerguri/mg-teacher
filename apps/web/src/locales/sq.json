@@ -42,7 +42,8 @@
     "email": "Email",
     "password": "Fjalëkalimi",
     "emailPlaceholder": "ju@shkolla.com",
-    "somethingWentWrong": "Diçka shkoi gabim"
+    "somethingWentWrong": "Diçka shkoi gabim",
+    "loginAsAdmin": "Hyni si administrator"
   },
   "classes": {
     "title": "Klasat",

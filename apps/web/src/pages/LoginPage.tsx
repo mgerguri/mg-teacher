@@ -3,6 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 
+// Seeded automatically on every API boot (apps/api/src/ensure-default-admin.ts)
+// so there's always a working login on a fresh deployment. Keep in sync with
+// that file if these ever change.
+const DEFAULT_ADMIN_EMAIL = 'teacher@school.com'
+const DEFAULT_ADMIN_PASSWORD = 'password123'
+
 export default function LoginPage() {
   const { login } = useAuth()
   const navigate  = useNavigate()
@@ -18,6 +24,19 @@ export default function LoginPage() {
     setLoading(true)
     try {
       await login(email, password)
+      navigate('/')
+    } catch (err: any) {
+      setError(err.message ?? t('auth.somethingWentWrong'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleAdminLogin() {
+    setError(null)
+    setLoading(true)
+    try {
+      await login(DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_PASSWORD)
       navigate('/')
     } catch (err: any) {
       setError(err.message ?? t('auth.somethingWentWrong'))
@@ -67,6 +86,20 @@ export default function LoginPage() {
             {loading ? t('auth.signingIn') : t('auth.signIn')}
           </button>
         </form>
+
+        <div className="mt-6 pt-5 border-t border-gray-100 text-center">
+          <button
+            type="button"
+            onClick={handleAdminLogin}
+            disabled={loading}
+            className="text-xs text-gray-500 hover:text-gray-800 disabled:opacity-50 transition-colors"
+          >
+            {t('auth.loginAsAdmin')}
+          </button>
+          <p className="text-[11px] text-gray-300 mt-1">
+            {DEFAULT_ADMIN_EMAIL} / {DEFAULT_ADMIN_PASSWORD}
+          </p>
+        </div>
       </div>
     </div>
   )

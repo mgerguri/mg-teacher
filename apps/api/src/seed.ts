@@ -1,41 +1,16 @@
-// Seed script: creates a default admin account for testing.
+// Manual convenience wrapper around ensureDefaultAdmin() — the server now
+// seeds this account automatically on every boot (see index.ts), so this
+// script is only needed to create it on demand without starting the server.
 // Usage: pnpm db:seed
-// Safe to run multiple times — uses INSERT ... ON CONFLICT DO NOTHING.
 
 import 'dotenv/config'
-import postgres from 'postgres'
-import bcrypt from 'bcryptjs'
-import { randomUUID } from 'crypto'
+import { ensureDefaultAdmin, DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_PASSWORD } from './ensure-default-admin.js'
 
-const url = process.env.DATABASE_URL
-if (!url) {
-  console.error('DATABASE_URL is not set')
-  process.exit(1)
-}
-
-const sql = postgres(url, { max: 1 })
-
-const email    = 'teacher@school.com'
-const password = 'password123'
-const hash     = await bcrypt.hash(password, 12)
-
-await sql`
-  INSERT INTO users (id, email, password_hash, role, first_name, last_name)
-  VALUES (
-    ${randomUUID()},
-    ${email},
-    ${hash},
-    'admin',
-    'Test',
-    'Teacher'
-  )
-  ON CONFLICT (email) DO NOTHING
-`
+await ensureDefaultAdmin()
 
 console.log('✓ Seed complete')
-console.log(`  Email:    ${email}`)
-console.log(`  Password: ${password}`)
+console.log(`  Email:    ${DEFAULT_ADMIN_EMAIL}`)
+console.log(`  Password: ${DEFAULT_ADMIN_PASSWORD}`)
 console.log(`  Role:     admin`)
 
-await sql.end()
 process.exit(0)

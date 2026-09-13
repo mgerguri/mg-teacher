@@ -118,19 +118,21 @@ cd apps/api
 pnpm db:migrate
 ```
 
-### 5. Seed a test account
+### 5. Default admin account
 
-```bash
-pnpm db:seed
-```
-
-This creates:
+The API seeds a default admin automatically every time it starts (safe to
+run repeatedly — it's a no-op once the account exists), so there's no manual
+step here. It's also shown directly on the login screen via a "Log in as
+admin" button.
 
 | Field | Value |
 |---|---|
 | Email | `teacher@school.com` |
 | Password | `password123` |
 | Role | `admin` |
+
+To (re-)create it without starting the server, e.g. against a database that
+predates this account: `cd apps/api && pnpm db:seed`.
 
 ### 6. Start dev servers
 
