@@ -55,7 +55,10 @@ export default function GradesGrid({ students, subjects, grades, suggestions, on
 
   function canEdit(subject: LocalSubject) {
     if (!user) return false
-    return user.role === 'admin' || subject.teacherId === user.id
+    // A subject with no teacher assigned isn't "someone else's" — it's
+    // unowned, so any teacher can grade it. Only an explicit assignment to
+    // a different teacher should lock it out for non-admins.
+    return user.role === 'admin' || !subject.teacherId || subject.teacherId === user.id
   }
 
   function handleCellClick(key: string, subject: LocalSubject) {
