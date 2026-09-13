@@ -1,14 +1,22 @@
-import { useState, useEffect, FormEvent } from 'react'
+import { useState, FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { LocalSchedule, LocalSubject, LocalClass, LocalTeacher } from '../../lib/local-db'
 
-// 30-min slots from 07:00 to 20:30
-const TIME_OPTIONS: string[] = []
-for (let h = 7; h <= 20; h++) {
-  TIME_OPTIONS.push(`${String(h).padStart(2, '0')}:00`)
-  if (h < 20) TIME_OPTIONS.push(`${String(h).padStart(2, '0')}:30`)
+const DEFAULT_DURATION_MIN = 30
+
+function minutesBetween(start: string, end: string): number {
+  const [sh, sm] = start.split(':').map(Number)
+  const [eh, em] = end.split(':').map(Number)
+  return (eh * 60 + em) - (sh * 60 + sm)
 }
-TIME_OPTIONS.push('20:30')
+
+function addMinutes(time: string, minutes: number): string {
+  const [h, m] = time.split(':').map(Number)
+  const total = ((h * 60 + m + minutes) % (24 * 60) + 24 * 60) % (24 * 60)
+  const hh = Math.floor(total / 60).toString().padStart(2, '0')
+  const mm = (total % 60).toString().padStart(2, '0')
+  return `${hh}:${mm}`
+}
 
 interface FormState {
   dayOfWeek: number
@@ -49,31 +57,38 @@ export default function ScheduleEntryModal({
   const [form, setForm] = useState<FormState>({
     dayOfWeek: entry?.dayOfWeek ?? defaults?.dayOfWeek ?? 1,
     startTime: entry?.startTime ?? defaults?.startTime ?? '08:00',
-    endTime:   entry?.endTime   ?? '09:00',
+    endTime:   entry?.endTime   ?? addMinutes(entry?.startTime ?? defaults?.startTime ?? '08:00', DEFAULT_DURATION_MIN),
     subjectId: entry?.subjectId ?? '',
     classId:   entry?.classId   ?? '',
     teacherId: entry?.teacherId ?? '',
   })
-
-  useEffect(() => {
-    const idx = TIME_OPTIONS.indexOf(form.startTime)
-    const endIdx = idx + 2
-    if (idx >= 0 && endIdx < TIME_OPTIONS.length) {
-      setForm(f => ({ ...f, endTime: TIME_OPTIONS[endIdx] }))
-    }
-  }, [form.startTime])
+  const [error, setError] = useState('')
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm(f => ({ ...f, [key]: value }))
   }
 
+  // Changing the start time shifts the end time by the same amount, so the
+  // duration the user already picked (5 min, 40 min, whatever) is kept —
+  // it only resets to the default duration if end wasn't after start yet.
+  function handleStartChange(newStart: string) {
+    setForm(f => {
+      const duration = minutesBetween(f.startTime, f.endTime)
+      const keptDuration = duration > 0 ? duration : DEFAULT_DURATION_MIN
+      return { ...f, startTime: newStart, endTime: addMinutes(newStart, keptDuration) }
+    })
+  }
+
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!form.subjectId || !form.classId || !form.teacherId) return
+    if (minutesBetween(form.startTime, form.endTime) <= 0) {
+      setError(t('scheduleModal.endAfterStart'))
+      return
+    }
+    setError('')
     onSave(form)
   }
-
-  const endOptions = TIME_OPTIONS.filter(t => t > form.startTime)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
@@ -100,23 +115,23 @@ export default function ScheduleEntryModal({
           <div className="flex gap-3">
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('scheduleModal.start')}</label>
-              <select
+              <input
+                type="time"
+                step={60}
                 value={form.startTime}
-                onChange={e => set('startTime', e.target.value)}
+                onChange={e => handleStartChange(e.target.value)}
                 className="w-full h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {TIME_OPTIONS.slice(0, -1).map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
+              />
             </div>
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('scheduleModal.end')}</label>
-              <select
+              <input
+                type="time"
+                step={60}
                 value={form.endTime}
                 onChange={e => set('endTime', e.target.value)}
                 className="w-full h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {endOptions.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
+              />
             </div>
           </div>
 
@@ -162,6 +177,8 @@ export default function ScheduleEntryModal({
               ))}
             </select>
           </div>
+
+          {error && <p className="text-sm text-red-600">{error}</p>}
 
           <div className="flex gap-2 pt-2">
             {isEdit && onDelete && (

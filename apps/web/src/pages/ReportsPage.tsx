@@ -117,7 +117,7 @@ export default function ReportsPage() {
     Promise.all([
       localDb.students.filter(s => !s.deletedAt && s.classId === classId).toArray(),
       localDb.grades.filter(g => !g.deletedAt && g.classId === classId).toArray(),
-      localDb.attendances.filter(a => !a.deletedAt).toArray(),
+      localDb.attendances.filter(a => !a.deletedAt && a.classId === classId).toArray(),
       localDb.schedules.filter(s => !s.deletedAt && s.classId === classId).toArray(),
       localDb.subjects.filter(s => !s.deletedAt).toArray(),
     ]).then(([students, grades, attendances, schedules, allSubjects]) => {
@@ -135,9 +135,6 @@ export default function ReportsPage() {
         .filter(Boolean) as LocalSubject[]
       setSubjects(classSubjects)
 
-      // Schedules for this class (to map attendance)
-      const classScheduleIds = new Set(schedules.map(s => s.id))
-
       // Filter grades by selected term
       const filteredGrades = term === 'all' ? grades : grades.filter(g => g.term === term)
 
@@ -150,9 +147,7 @@ export default function ReportsPage() {
           const gradeMap      = new Map<string, number>()
           for (const g of studentGrades) gradeMap.set(g.subjectId, g.score)
 
-          const studentAtt = attendances.filter(
-            a => a.studentId === student.id && classScheduleIds.has(a.scheduleId)
-          )
+          const studentAtt = attendances.filter(a => a.studentId === student.id)
 
           return {
             student,

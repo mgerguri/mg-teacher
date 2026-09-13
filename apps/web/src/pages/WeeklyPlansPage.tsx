@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   localDb,
@@ -41,7 +41,7 @@ function fmtDate(dateStr: string): string {
   })
 }
 
-// ── Slot entry card ────────────────────────────────────────────────────────────
+// ── Slot + entry modal ────────────────────────────────────────────────────────
 
 interface SlotEntry {
   schedule: LocalSchedule
@@ -50,105 +50,78 @@ interface SlotEntry {
   entry:    LocalWeeklyPlanEntry | undefined
 }
 
-interface EntryCardProps {
-  slot:     SlotEntry
-  planId:   string
-  onSave:   (scheduleId: string, date: string, fields: Partial<LocalWeeklyPlanEntry>) => void
-}
-
-function EntryCard({ slot, planId, onSave }: EntryCardProps) {
-  const { t } = useTranslation()
-  const { schedule, subject, date, entry } = slot
-
-  // Local state for each field — synced from entry on mount/change
-  const [topic,      setTopic]      = useState(entry?.topic      ?? '')
-  const [objectives, setObjectives] = useState(entry?.objectives ?? '')
-  const [activities, setActivities] = useState(entry?.activities ?? '')
-  const [homework,   setHomework]   = useState(entry?.homework   ?? '')
-
-  // Sync from parent when entry changes (e.g. after pull)
-  useEffect(() => {
-    setTopic(entry?.topic      ?? '')
-    setObjectives(entry?.objectives ?? '')
-    setActivities(entry?.activities ?? '')
-    setHomework(entry?.homework   ?? '')
-  }, [entry?.id, entry?.updatedAt])
-
-  function handleBlur() {
-    onSave(schedule.id, date, { topic, objectives, activities, homework })
-  }
-
-  const isPending = entry?.syncStatus === 'pending'
-
-  return (
-    <div className={`bg-white rounded-xl border p-4 space-y-3 ${isPending ? 'border-amber-200' : 'border-gray-100'}`}>
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <span className="text-xs text-gray-400 tabular-nums w-20">{schedule.startTime}–{schedule.endTime}</span>
-        <span className="text-sm font-semibold text-gray-800">{subject?.name ?? '—'}</span>
-        {isPending && <span className="ml-auto text-xs text-amber-400">●</span>}
-      </div>
-
-      {/* Fields */}
-      <div className="space-y-2">
-        <Field
-          label={t('plans.topic')}
-          value={topic}
-          onChange={setTopic}
-          onBlur={handleBlur}
-          placeholder={t('plans.topicPlaceholder')}
-          rows={1}
-        />
-        <Field
-          label={t('plans.objectives')}
-          value={objectives}
-          onChange={setObjectives}
-          onBlur={handleBlur}
-          placeholder={t('plans.objectivesPlaceholder')}
-          rows={2}
-        />
-        <Field
-          label={t('plans.activities')}
-          value={activities}
-          onChange={setActivities}
-          onBlur={handleBlur}
-          placeholder={t('plans.activitiesPlaceholder')}
-          rows={2}
-        />
-        <Field
-          label={t('plans.homework')}
-          value={homework}
-          onChange={setHomework}
-          onBlur={handleBlur}
-          placeholder={t('plans.homeworkPlaceholder')}
-          rows={1}
-        />
-      </div>
-    </div>
-  )
-}
-
 function Field({
-  label, value, onChange, onBlur, placeholder, rows,
+  label, value, onChange, placeholder, rows,
 }: {
   label: string
   value: string
   onChange: (v: string) => void
-  onBlur: () => void
   placeholder: string
   rows: number
 }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-gray-400 mb-0.5">{label}</label>
+      <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
       <textarea
         value={value}
         onChange={e => onChange(e.target.value)}
-        onBlur={onBlur}
         placeholder={placeholder}
         rows={rows}
         className="w-full text-sm text-gray-800 bg-gray-50 rounded-lg px-3 py-2 resize-none border border-transparent focus:border-blue-300 focus:bg-white focus:outline-none transition-colors placeholder-gray-300"
       />
+    </div>
+  )
+}
+
+function PlanEntryModal({
+  slot, onSave, onClose,
+}: {
+  slot:   SlotEntry
+  onSave: (fields: Partial<LocalWeeklyPlanEntry>) => void
+  onClose: () => void
+}) {
+  const { t } = useTranslation()
+  const { schedule, subject, date, entry } = slot
+
+  const [topic,      setTopic]      = useState(entry?.topic      ?? '')
+  const [objectives, setObjectives] = useState(entry?.objectives ?? '')
+  const [activities, setActivities] = useState(entry?.activities ?? '')
+  const [homework,   setHomework]   = useState(entry?.homework   ?? '')
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    onSave({ topic, objectives, activities, homework })
+    onClose()
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">{subject?.name ?? '—'}</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{fmtDate(date)} · {schedule.startTime}–{schedule.endTime}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+        </div>
+
+        <form id="plan-entry-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
+          <Field label={t('plans.topic')}      value={topic}      onChange={setTopic}      placeholder={t('plans.topicPlaceholder')}      rows={2} />
+          <Field label={t('plans.objectives')} value={objectives} onChange={setObjectives} placeholder={t('plans.objectivesPlaceholder')} rows={3} />
+          <Field label={t('plans.activities')} value={activities} onChange={setActivities} placeholder={t('plans.activitiesPlaceholder')} rows={3} />
+          <Field label={t('plans.homework')}   value={homework}   onChange={setHomework}   placeholder={t('plans.homeworkPlaceholder')}   rows={2} />
+        </form>
+
+        <div className="flex gap-2 px-6 py-4 border-t border-gray-100">
+          <div className="flex-1" />
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+            {t('plans.cancel')}
+          </button>
+          <button type="submit" form="plan-entry-form" className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+            {t('plans.save')}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -168,6 +141,7 @@ export default function WeeklyPlansPage() {
   const [plan,       setPlan]       = useState<LocalWeeklyPlan | null>(null)
   const [entries,    setEntries]    = useState<LocalWeeklyPlanEntry[]>([])
   const [exporting,  setExporting]  = useState<'pdf' | 'word' | null>(null)
+  const [editingSlot, setEditingSlot] = useState<SlotEntry | null>(null)
 
   // Load classes once
   useEffect(() => {
@@ -416,20 +390,61 @@ export default function WeeklyPlansPage() {
                 <div className="flex-1 h-px bg-gray-100" />
               </div>
 
-              {/* Slot cards */}
-              <div className="grid gap-3 sm:grid-cols-2">
-                {slotsByDay[dow].map(slot => (
-                  <EntryCard
-                    key={`${slot.schedule.id}:${slot.date}`}
-                    slot={slot}
-                    planId={plan?.id ?? ''}
-                    onSave={handleSave}
-                  />
-                ))}
+              {/* Slot table */}
+              <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 border-b border-gray-100">
+                    <tr>
+                      <th className="px-4 py-2 text-left font-medium text-gray-500 w-28">{t('plans.time')}</th>
+                      <th className="px-4 py-2 text-left font-medium text-gray-500 w-40">{t('plans.subject')}</th>
+                      <th className="px-4 py-2 text-left font-medium text-gray-500">{t('plans.topic')}</th>
+                      <th className="px-4 py-2 w-16" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {slotsByDay[dow].map((slot, i) => {
+                      const isPending = slot.entry?.syncStatus === 'pending'
+                      return (
+                        <tr
+                          key={`${slot.schedule.id}:${slot.date}`}
+                          onClick={() => setEditingSlot(slot)}
+                          className={`cursor-pointer hover:bg-gray-50 transition-colors ${i > 0 ? 'border-t border-gray-50' : ''}`}
+                        >
+                          <td className="px-4 py-2.5 text-gray-500 tabular-nums">
+                            {slot.schedule.startTime}–{slot.schedule.endTime}
+                          </td>
+                          <td className="px-4 py-2.5 font-medium text-gray-800">
+                            {slot.subject?.name ?? '—'}
+                            {isPending && <span className="ml-2 text-xs text-amber-400">●</span>}
+                          </td>
+                          <td className="px-4 py-2.5 text-gray-500 max-w-xs truncate">
+                            {slot.entry?.topic || <span className="text-gray-300">{t('plans.noTopic')}</span>}
+                          </td>
+                          <td className="px-4 py-2.5 text-right">
+                            <button
+                              onClick={e => { e.stopPropagation(); setEditingSlot(slot) }}
+                              className="text-xs text-indigo-600 hover:underline"
+                            >
+                              {t('plans.edit')}
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
           ))}
         </div>
+      )}
+
+      {editingSlot && (
+        <PlanEntryModal
+          slot={editingSlot}
+          onSave={fields => handleSave(editingSlot.schedule.id, editingSlot.date, fields)}
+          onClose={() => setEditingSlot(null)}
+        />
       )}
     </div>
   )

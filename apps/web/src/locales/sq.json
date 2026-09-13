@@ -223,9 +223,9 @@
   },
   "grades": {
     "title": "Notat",
-    "subtitle": "1 = më e ulëta · 5 = më e larta · unaza angjare = jo ende e sinkronizuar",
+    "subtitle": "1 = më e ulëta · 5 = më e larta · unaza angjare = jo ende e sinkronizuar · vija të ndërprera = e sugjeruar, jo ende e konfirmuar",
     "class": "Klasa",
-    "term": "Tremujori",
+    "term": "Periudha",
     "customTerm": "me porosi…",
     "backToPresets": "← paracaktuar",
     "customTermPlaceholder": "p.sh. T1 2025",
@@ -235,6 +235,7 @@
     "noStudents": "Ende pa nxënës në këtë klasë.",
     "noSubjects": "Asnjë lëndë nuk është caktuar për këtë klasë. Shtoni një hyrje në orar.",
     "clickToSet": "Klikoni për të vendosur notën",
+    "suggestedHint": "Sugjeruar nga mesatarja e semestrave — klikoni për të konfirmuar ose ndryshuar",
     "teacherOnly": "Vetëm mësuesi i lëndës mund të ndryshojë këtë notë"
   },
   "schedule": {
@@ -256,6 +257,7 @@
     "day": "Dita",
     "start": "Fillimi",
     "end": "Mbarimi",
+    "endAfterStart": "Ora e mbarimit duhet të jetë pas orës së fillimit.",
     "subject": "Lënda",
     "selectSubject": "Zgjidhni lëndën…",
     "class": "Klasa",
@@ -297,7 +299,13 @@
     "homework": "Detyra",
     "homeworkPlaceholder": "Detyrat e shtëpisë…",
     "exportPdf": "Eksporto PDF",
-    "exportWord": "Eksporto Word"
+    "exportWord": "Eksporto Word",
+    "time": "Ora",
+    "subject": "Lënda",
+    "noTopic": "Ende pa temë",
+    "edit": "Ndrysho",
+    "cancel": "Anulo",
+    "save": "Ruaj"
   },
   "reports": {
     "title": "Raporte",
@@ -336,14 +344,12 @@
     "tabSummary": "Përmbledhje",
     "class": "Klasa",
     "date": "Data",
-    "slot": "Ora",
     "from": "Nga",
     "to": "Deri",
     "present": "Prezent",
     "absent": "Mungon",
     "excused": "Arsyetuar",
     "mark": {
-      "noSlot": "Nuk u gjet asnjë orë mësimi për këtë klasë në datën e zgjedhur.",
       "noStudents": "Nuk ka nxënës në këtë klasë.",
       "hint": "Klikoni statusin për të ndryshuar: Prezent → Mungon → Arsyetuar → Prezent"
     },
@@ -372,7 +378,7 @@
     "addAssessment": "+ Shto vlerësim",
     "importAssessments": "↑ Importo",
     "importTitle": "Importo vlerësimet për këtë klasë",
-    "importColumnsHint": "Kolonat: student (emri/mbiemri ose email), subject (emri ose kodi), title, type, score, maxScore, date, notes",
+    "importColumnsHint": "Kolonat: student (emri/mbiemri ose email), subject (emri ose kodi), title, type, score, maxScore, grade (1-5, opsionale), date, notes",
     "importSkipped_one": "{{count}} rresht u anashkalua — nxënësi ose lënda nuk u njoh.",
     "importSkipped_other": "{{count}} rreshta u anashkaluan — nxënësi ose lënda nuk u njoh.",
     "newAssessment": "Vlerësim i ri",
@@ -385,6 +391,7 @@
     "date": "Data",
     "score": "Pikët",
     "maxScore": "Nga",
+    "grade": "Nota",
     "notes": "Shënime",
     "avg": "Mes. klasa",
     "edit": "Ndrysho",

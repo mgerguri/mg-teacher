@@ -11,7 +11,7 @@ import { ColumnMap } from '../lib/spreadsheet'
 type AssessmentType = 'quiz' | 'test' | 'exam' | 'homework' | 'other'
 
 type AssessmentImportField =
-  'student' | 'subject' | 'title' | 'type' | 'score' | 'maxScore' | 'date' | 'notes'
+  'student' | 'subject' | 'title' | 'type' | 'score' | 'maxScore' | 'grade' | 'date' | 'notes'
 
 const ASSESSMENT_COLUMN_MAP: ColumnMap<AssessmentImportField> = {
   student: 'student', studentname: 'student', student_name: 'student', email: 'student',
@@ -20,6 +20,7 @@ const ASSESSMENT_COLUMN_MAP: ColumnMap<AssessmentImportField> = {
   type: 'type',
   score: 'score',
   maxscore: 'maxScore', max_score: 'maxScore', outof: 'maxScore', out_of: 'maxScore',
+  grade: 'grade',
   date: 'date',
   notes: 'notes',
 }
@@ -30,8 +31,22 @@ const ASSESSMENT_PREVIEW_COLUMNS: { key: AssessmentImportField; label: string }[
   { key: 'title', label: 'title' },
   { key: 'score', label: 'score' },
   { key: 'maxScore', label: 'maxScore' },
+  { key: 'grade', label: 'grade' },
   { key: 'date', label: 'date' },
 ]
+
+function parseGrade(value: string | undefined): 1 | 2 | 3 | 4 | 5 | undefined {
+  const n = Number(value)
+  return n >= 1 && n <= 5 && Number.isInteger(n) ? (n as 1 | 2 | 3 | 4 | 5) : undefined
+}
+
+const GRADE_STYLE: Record<number, string> = {
+  1: 'bg-red-100 text-red-700',
+  2: 'bg-orange-100 text-orange-700',
+  3: 'bg-yellow-100 text-yellow-700',
+  4: 'bg-green-100 text-green-700',
+  5: 'bg-emerald-100 text-emerald-700',
+}
 
 const ASSESSMENT_TYPES: AssessmentType[] = ['quiz', 'test', 'exam', 'homework', 'other']
 
@@ -42,6 +57,7 @@ interface AssessmentForm {
   type:      AssessmentType
   score:     string
   maxScore:  string
+  grade:     string
   date:      string
   notes:     string
 }
@@ -53,6 +69,7 @@ const EMPTY_FORM: AssessmentForm = {
   type:      'test',
   score:     '',
   maxScore:  '100',
+  grade:     '',
   date:      new Date().toISOString().slice(0, 10),
   notes:     '',
 }
@@ -130,6 +147,7 @@ export default function AssessmentsPage() {
       type:      a.type,
       score:     String(a.score),
       maxScore:  String(a.maxScore),
+      grade:     a.grade ? String(a.grade) : '',
       date:      a.date,
       notes:     a.notes ?? '',
     })
@@ -141,6 +159,7 @@ export default function AssessmentsPage() {
     const now = new Date().toISOString()
     const score    = Number(form.score)
     const maxScore = Number(form.maxScore) || 100
+    const grade    = parseGrade(form.grade)
 
     const student = students.find(s => s.id === form.studentId)
     if (!student) return
@@ -153,6 +172,7 @@ export default function AssessmentsPage() {
         type:      form.type,
         score,
         maxScore,
+        grade,
         date:      form.date,
         notes:     form.notes || undefined,
         updatedAt: now,
@@ -169,6 +189,7 @@ export default function AssessmentsPage() {
         type:       form.type,
         score,
         maxScore,
+        grade,
         date:       form.date,
         notes:      form.notes || undefined,
         updatedAt:  now,
@@ -231,6 +252,7 @@ export default function AssessmentsPage() {
         type,
         score,
         maxScore:   Number(r.maxScore) || 100,
+        grade:      parseGrade(r.grade),
         date:       r.date || now.slice(0, 10),
         notes:      r.notes || undefined,
         updatedAt:  now,
@@ -348,6 +370,7 @@ export default function AssessmentsPage() {
                         <th className="px-4 py-2 font-medium">{t('assessments.type')}</th>
                         <th className="px-4 py-2 font-medium">{t('assessments.subject')}</th>
                         <th className="px-4 py-2 font-medium">{t('assessments.score')}</th>
+                        <th className="px-4 py-2 font-medium">{t('assessments.grade')}</th>
                         <th className="px-4 py-2" />
                       </tr>
                     </thead>
@@ -369,6 +392,15 @@ export default function AssessmentsPage() {
                               <span className={`font-medium ${pctColor(p)}`}>
                                 {a.score}/{a.maxScore} ({p}%)
                               </span>
+                            </td>
+                            <td className="px-4 py-2">
+                              {a.grade ? (
+                                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${GRADE_STYLE[a.grade]}`}>
+                                  {a.grade}
+                                </span>
+                              ) : (
+                                <span className="text-gray-300">—</span>
+                              )}
                             </td>
                             <td className="px-4 py-2 text-right">
                               <button
@@ -486,6 +518,17 @@ export default function AssessmentsPage() {
                     className="w-full h-9 border border-gray-300 rounded-lg px-3 text-sm"
                   />
                 </div>
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">{t('assessments.grade')}</label>
+                  <select
+                    value={form.grade}
+                    onChange={e => setForm(f => ({ ...f, grade: e.target.value }))}
+                    className="w-full h-9 border border-gray-300 rounded-lg px-3 text-sm bg-white"
+                  >
+                    <option value="">—</option>
+                    {[1, 2, 3, 4, 5].map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                </div>
               </div>
 
               {/* Notes */}
@@ -542,8 +585,8 @@ export default function AssessmentsPage() {
           onImport={handleImport}
           onClose={() => setShowImport(false)}
           templateFilename="assessments-template.xlsx"
-          templateHeaders={['student', 'subject', 'title', 'type', 'score', 'maxScore', 'date', 'notes']}
-          templateExample={['Ana Berisha', 'Mathematics', 'Chapter 5 test', 'test', '85', '100', '2026-09-15', '']}
+          templateHeaders={['student', 'subject', 'title', 'type', 'score', 'maxScore', 'grade', 'date', 'notes']}
+          templateExample={['Ana Berisha', 'Mathematics', 'Chapter 5 test', 'test', '85', '100', '4', '2026-09-15', '']}
         />
       )}
     </div>

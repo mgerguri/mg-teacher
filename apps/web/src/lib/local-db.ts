@@ -110,8 +110,10 @@ export interface LocalWeeklyPlanEntry {
 export interface LocalAttendance {
   id: string
   studentId: string
-  scheduleId: string
+  classId: string
   date: string          // 'YYYY-MM-DD'
+  // Absence of a record for a given studentId+date means present — attendance
+  // is tracked once per day per student, not per class period.
   status: 'absent' | 'excused'
   notes?: string
   teacherId: string
@@ -130,6 +132,7 @@ export interface LocalAssessment {
   type:      'quiz' | 'test' | 'exam' | 'homework' | 'other'
   score:     number
   maxScore:  number
+  grade?:    1 | 2 | 3 | 4 | 5
   date:      string  // 'YYYY-MM-DD'
   notes?:    string
   updatedAt: string
@@ -205,6 +208,39 @@ class LocalDatabase extends Dexie {
     // v6 adds assessments
     this.version(6).stores({
       assessments: 'id, studentId, subjectId, classId, teacherId, date, updatedAt, syncStatus',
+    })
+    // v7: attendance moves from per-period (scheduleId) to per-day
+    // (classId) tracking — one status per student per date, not one per
+    // class period. A day that previously had mixed per-period marks (e.g.
+    // absent for period 1, excused for period 2) collapses to a single
+    // record, keeping the more severe status; the rest are soft-deleted
+    // rather than dropped, so summaries don't double-count old data.
+    this.version(7).stores({
+      attendances: 'id, studentId, classId, date, updatedAt, syncStatus',
+    }).upgrade(async tx => {
+      const students = await tx.table('students').toArray()
+      const classByStudent = new Map(students.map((s: LocalStudent) => [s.id, s.classId]))
+
+      const all = await tx.table('attendances').toArray()
+      const now = new Date().toISOString()
+      const severity: Record<string, number> = { excused: 1, absent: 2 }
+
+      const keepByKey = new Map<string, LocalAttendance>()
+      for (const rec of all as LocalAttendance[]) {
+        if (rec.deletedAt) continue
+        const key = `${rec.studentId}:${rec.date}`
+        const prev = keepByKey.get(key)
+        if (!prev || severity[rec.status] > severity[prev.status]) keepByKey.set(key, rec)
+      }
+      const keptIds = new Set([...keepByKey.values()].map(r => r.id))
+
+      await tx.table('attendances').toCollection().modify((rec: LocalAttendance & { scheduleId?: string }) => {
+        rec.classId = classByStudent.get(rec.studentId) ?? ''
+        delete rec.scheduleId
+        if (!rec.deletedAt && !keptIds.has(rec.id)) {
+          rec.deletedAt = now
+        }
+      })
     })
   }
 }
