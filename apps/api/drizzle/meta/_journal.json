@@ -15,6 +15,13 @@
       "when": 1700000001000,
       "tag": "0001_conduct_contact_assessments",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1700000002000,
+      "tag": "0002_class_owner",
+      "breakpoints": true
     }
   ]
 }

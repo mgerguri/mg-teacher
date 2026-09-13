@@ -29,6 +29,10 @@ export const classes = pgTable('classes', {
   name: text('name').notNull(),
   gradeLevel: text('grade_level').notNull(),
   academicYear: text('academic_year').notNull(),
+  // Owning teacher — see LocalClass in apps/web/src/lib/local-db.ts for the
+  // full rationale. Nullable: classes that existed before ownership was
+  // introduced have no owner and are admin-only until assigned.
+  teacherId: text('teacher_id').references(() => users.id),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
   deletedAt: timestamp('deleted_at'),
 })
