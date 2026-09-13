@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { localDb, LocalAssessment, LocalStudent, LocalSubject, LocalClass } from '../lib/local-db'
 import { useAuth } from '../context/AuthContext'
 import { useSync } from '../context/SyncContext'
+import { scopeClasses, scopeSubjects, scopeByClassId, classIdSet } from '../lib/scope'
 import BulkImportModal from '../components/common/BulkImportModal'
 import { ColumnMap } from '../lib/spreadsheet'
 
@@ -103,13 +104,15 @@ export default function AssessmentsPage() {
       localDb.subjects.filter((s: { deletedAt?: string }) => !s.deletedAt).toArray(),
       localDb.assessments.filter((a: { deletedAt?: string }) => !a.deletedAt).toArray(),
     ])
-    setClasses(cl)
-    setStudents(st)
-    setSubjects(su)
-    setAssessments(as)
+    const ownClasses = scopeClasses(cl, user)
+    const ownClassIds = classIdSet(ownClasses)
+    setClasses(ownClasses)
+    setStudents(scopeByClassId(st, user, ownClassIds))
+    setSubjects(scopeSubjects(su, user))
+    setAssessments(scopeByClassId(as, user, ownClassIds))
   }
 
-  useEffect(() => { reload() }, [])
+  useEffect(() => { reload() }, [user])
 
   // ── Derived ─────────────────────────────────────────────────────────────────
 

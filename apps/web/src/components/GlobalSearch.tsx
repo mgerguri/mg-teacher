@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { localDb, LocalStudent } from '../lib/local-db'
+import { useAuth } from '../context/AuthContext'
+import { scopeClasses, scopeByClassId, classIdSet } from '../lib/scope'
 
 interface Result {
   student:   LocalStudent
@@ -11,6 +13,7 @@ interface Result {
 export default function GlobalSearch() {
   const { t }    = useTranslation()
   const navigate = useNavigate()
+  const { user } = useAuth()
 
   const [open,    setOpen]    = useState(false)
   const [query,   setQuery]   = useState('')
@@ -45,10 +48,12 @@ export default function GlobalSearch() {
     if (!q.trim()) { setResults([]); return }
     const lower = q.toLowerCase()
 
-    const [students, classes] = await Promise.all([
+    const [studentsRaw, classesRaw] = await Promise.all([
       localDb.students.filter(s => !s.deletedAt).toArray(),
       localDb.classes.filter(c => !c.deletedAt).toArray(),
     ])
+    const classes = scopeClasses(classesRaw, user)
+    const students = scopeByClassId(studentsRaw, user, classIdSet(classes))
     const classMap = new Map(classes.map(c => [c.id, c.name]))
 
     const matched = students
@@ -63,7 +68,7 @@ export default function GlobalSearch() {
 
     setResults(matched)
     setCursor(0)
-  }, [])
+  }, [user])
 
   useEffect(() => { search(query) }, [query, search])
 

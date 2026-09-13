@@ -52,6 +52,7 @@
     "importTitle": "Importo klasat",
     "importColumnsHint": "Kolonat: name, gradeLevel, academicYear",
     "noClasses": "Ende pa klasa. Krijoni të parën tuaj.",
+    "notFound": "Kjo klasë nuk ekziston ose nuk mund ta shihni.",
     "editClass": "Ndrysho klasën",
     "student_one": "nxënës",
     "student_other": "nxënës"
@@ -64,6 +65,9 @@
     "gradeLevel": "Niveli i klasës",
     "gradeLevelPlaceholder": "p.sh. Klasa 10",
     "academicYear": "Viti akademik",
+    "owner": "Pronari",
+    "unassigned": "E pacaktuar (vetëm admin)",
+    "ownerHint": "Vetëm mësuesi pronar (dhe administratorët) mund ta shohin këtë klasë dhe nxënësit, notat, prezencën dhe planet e saj.",
     "delete": "Fshi",
     "cancel": "Anulo",
     "save": "Ruaj",
@@ -142,6 +146,7 @@
     "progressReport": "Raport Progresi",
     "downloadReport": "Shkarko raportin",
     "reportError": "Raporti nuk u ruajt dot. Kontrolloni që dosja e destinacionit është e shkrueshme dhe provoni përsëri.",
+    "notFound": "Ky nxënës nuk ekziston ose nuk mund ta shihni.",
     "conductTitle": "Shënime sjelljeje",
     "contactLogTitle": "Regjistri i kontakteve me prindërit"
   },

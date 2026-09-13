@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { localDb, LocalClass, LocalStudent, LocalSubject, LocalGrade, LocalSchedule } from '../lib/local-db'
+import { useAuth } from '../context/AuthContext'
+import { scopeClasses, scopeSubjects } from '../lib/scope'
 import { exportToExcel, exportToPDF, ReportExportData } from '../lib/report-export'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -87,7 +89,8 @@ function SortTh({
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function ReportsPage() {
-  const { t } = useTranslation()
+  const { t }    = useTranslation()
+  const { user } = useAuth()
 
   const [classes,  setClasses]  = useState<LocalClass[]>([])
   const [classId,  setClassId]  = useState<string>('')
@@ -104,11 +107,11 @@ export default function ReportsPage() {
   // ── Load classes ─────────────────────────────────────────────────────────────
   useEffect(() => {
     localDb.classes.filter(c => !c.deletedAt).toArray().then(all => {
-      const sorted = all.sort((a, b) => a.name.localeCompare(b.name))
+      const sorted = scopeClasses(all, user).sort((a, b) => a.name.localeCompare(b.name))
       setClasses(sorted)
       if (sorted.length) setClassId(sorted[0].id)
     })
-  }, [])
+  }, [user])
 
   // ── Load report data when classId changes ─────────────────────────────────────
   useEffect(() => {
@@ -127,7 +130,7 @@ export default function ReportsPage() {
       setTerms(distinctTerms)
 
       // Subject lookup
-      const subjectMap = new Map(allSubjects.map(s => [s.id, s]))
+      const subjectMap = new Map(scopeSubjects(allSubjects, user).map(s => [s.id, s]))
 
       // Subjects that are scheduled for this class (for column display)
       const scheduledSubjectIds = [...new Set(schedules.map(s => s.subjectId))]
@@ -163,7 +166,7 @@ export default function ReportsPage() {
       setRows(studentRows)
       setLoading(false)
     })
-  }, [classId, term])
+  }, [classId, term, user])
 
   // ── Sorting ────────────────────────────────────────────────────────────────
 

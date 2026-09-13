@@ -7,6 +7,7 @@ import {
 } from '../lib/local-db'
 import { useSync } from '../context/SyncContext'
 import { useAuth } from '../context/AuthContext'
+import { scopeClasses, scopeSubjects } from '../lib/scope'
 import { exportPlanToPDF, exportPlanToWord } from '../lib/plan-export'
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
@@ -147,11 +148,11 @@ export default function WeeklyPlansPage() {
   // Load classes once
   useEffect(() => {
     localDb.classes.filter(c => !c.deletedAt).toArray().then(all => {
-      const sorted = all.sort((a, b) => a.name.localeCompare(b.name))
+      const sorted = scopeClasses(all, user).sort((a, b) => a.name.localeCompare(b.name))
       setClasses(sorted)
       if (sorted.length) setClassId(sorted[0].id)
     })
-  }, [])
+  }, [user])
 
   // Load schedule + plan data whenever class or week changes
   const reload = useCallback(async () => {
@@ -161,7 +162,7 @@ export default function WeeklyPlansPage() {
       localDb.subjects.filter(s => !s.deletedAt).toArray(),
     ])
     setSchedules(allSchedules.sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.startTime.localeCompare(b.startTime)))
-    setSubjects(new Map(allSubjects.map(s => [s.id, s])))
+    setSubjects(new Map(scopeSubjects(allSubjects, user).map(s => [s.id, s])))
 
     // Find or leave blank the plan for this class+week
     const existingPlan = await localDb.weeklyPlans
@@ -177,7 +178,7 @@ export default function WeeklyPlansPage() {
     } else {
       setEntries([])
     }
-  }, [classId, weekStart])
+  }, [classId, weekStart, user])
 
   useEffect(() => { reload() }, [reload])
 

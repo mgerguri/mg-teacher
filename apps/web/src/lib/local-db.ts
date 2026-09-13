@@ -50,6 +50,11 @@ export interface LocalClass {
   name: string
   gradeLevel: string
   academicYear: string
+  // Owning teacher — a class (and everything under it: students, grades,
+  // attendance, schedules, plans, assessments) is only visible to its owner
+  // and to admins. Absent on classes that existed before ownership was
+  // introduced; those are admin-only until explicitly assigned.
+  teacherId?: string
   updatedAt: string
   deletedAt?: string
   syncStatus: SyncStatus
@@ -241,6 +246,13 @@ class LocalDatabase extends Dexie {
           rec.deletedAt = now
         }
       })
+    })
+
+    // v8 adds per-teacher class ownership — classes.teacherId is now
+    // indexed for scoped queries. Existing classes get no owner (see the
+    // LocalClass comment); admins can assign one via the class editor.
+    this.version(8).stores({
+      classes: 'id, teacherId, updatedAt, syncStatus',
     })
   }
 }

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { localDb, LocalStudent, LocalClass, LocalSchedule, LocalSubject, LocalGrade, LocalConductNote, LocalContactLog } from '../lib/local-db'
 import { useSync } from '../context/SyncContext'
 import { useAuth } from '../context/AuthContext'
+import { scopeClasses, scopeSubjects, isAdmin } from '../lib/scope'
 import StudentModal, { StudentFormState } from '../components/students/StudentModal'
 import { saveFile } from '../lib/save-file'
 
@@ -130,6 +131,7 @@ export default function StudentProfilePage() {
   const [contactLogs,  setContactLogs]  = useState<LocalContactLog[]>([])
   const [editing,      setEditing]      = useState(false)
   const [reportError,  setReportError]  = useState<string | null>(null)
+  const [notFound,     setNotFound]     = useState(false)
 
   // Inline add-conduct-note form
   const [conductForm,  setConductForm]  = useState({ date: new Date().toISOString().slice(0, 10), category: 'neutral' as LocalConductNote['category'], note: '' })
@@ -140,16 +142,29 @@ export default function StudentProfilePage() {
 
   const reload = useCallback(async () => {
     if (!studentId) return
-    const [s, allClasses, allSubjects] = await Promise.all([
+    const [s, allClassesRaw, allSubjectsRaw] = await Promise.all([
       localDb.students.get(studentId),
       localDb.classes.filter(c => !c.deletedAt).toArray(),
       localDb.subjects.filter(s => !s.deletedAt).toArray(),
     ])
-    setStudent(s ?? null)
+    const allClasses  = scopeClasses(allClassesRaw, user)
+    const allSubjects = scopeSubjects(allSubjectsRaw, user)
+    const cls = s?.classId ? allClasses.find(c => c.id === s.classId) ?? null : null
+
+    // A student whose class isn't in the caller's own scoped list — a
+    // different teacher's class, an unassigned student, or a bad/stale URL
+    // — must not leak grades/attendance/conduct/contact data by studentId
+    // alone. This is the direct-URL path that bypasses the Students list.
+    if (!s || (!cls && !isAdmin(user))) {
+      setNotFound(true)
+      setStudent(null)
+      return
+    }
+    setNotFound(false)
+
+    setStudent(s)
     setClasses(allClasses)
     setSubjects(new Map(allSubjects.map(su => [su.id, su])))
-
-    const cls = s?.classId ? allClasses.find(c => c.id === s.classId) ?? null : null
     setCls(cls)
 
     if (cls) {
@@ -171,7 +186,7 @@ export default function StudentProfilePage() {
 
     const cl  = await localDb.contactLogs.filter(l => !l.deletedAt && l.studentId === studentId).toArray()
     setContactLogs(cl.sort((a, b) => b.date.localeCompare(a.date)))
-  }, [studentId])
+  }, [studentId, user])
 
   useEffect(() => { reload() }, [reload])
 
@@ -251,6 +266,15 @@ export default function StudentProfilePage() {
     } catch {
       setReportError(t('studentProfile.reportError'))
     }
+  }
+
+  if (notFound) {
+    return (
+      <div className="p-6 text-center">
+        <p className="text-sm text-gray-400 mb-3">{t('studentProfile.notFound')}</p>
+        <Link to="/classes" className="text-sm text-blue-600 hover:underline">{t('common.breadcrumbClasses')}</Link>
+      </div>
+    )
   }
 
   if (!student) {
