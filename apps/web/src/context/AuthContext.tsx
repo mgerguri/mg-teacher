@@ -63,8 +63,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function createAccount(input: Omit<CreateAccountInput, 'role'>) {
-    // The first account created on a device is always the admin.
-    const teacher = await createLocalAccount({ ...input, role: 'admin' })
+    // Desktop installs are single-teacher by default — the first account is
+    // a regular teacher, not an admin, so the Teachers admin page (gated to
+    // role === 'admin') stays hidden for the common solo-teacher case.
+    const teacher = await createLocalAccount({ ...input, role: 'teacher' })
     setNeedsSetup(false)
     localStorage.setItem(SESSION_KEY, teacher.id)
     setUser(toAuthUser(teacher))

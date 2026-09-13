@@ -15,10 +15,22 @@ const SCORE_STYLE: Record<number, string> = {
 }
 const EMPTY_STYLE = 'text-gray-300 hover:bg-gray-50'
 
+// Suggested-but-not-yet-confirmed grade (e.g. the computed year average) —
+// a lighter, dashed-border variant of SCORE_STYLE so it reads as a hint
+// rather than a saved fact.
+const SUGGESTED_STYLE: Record<number, string> = {
+  1: 'border-2 border-dashed border-red-300 text-red-500 bg-red-50',
+  2: 'border-2 border-dashed border-orange-300 text-orange-500 bg-orange-50',
+  3: 'border-2 border-dashed border-yellow-300 text-yellow-600 bg-yellow-50',
+  4: 'border-2 border-dashed border-green-300 text-green-600 bg-green-50',
+  5: 'border-2 border-dashed border-emerald-300 text-emerald-600 bg-emerald-50',
+}
+
 interface Props {
   students: LocalStudent[]
   subjects: LocalSubject[]
   grades:   Map<string, LocalGrade>  // key: `${studentId}:${subjectId}`
+  suggestions?: Map<string, 1|2|3|4|5>  // same key — computed defaults, not yet saved
   onGradeChange: (studentId: string, subjectId: string, score: 1|2|3|4|5) => void
 }
 
@@ -26,7 +38,7 @@ function gradeKey(studentId: string, subjectId: string) {
   return `${studentId}:${subjectId}`
 }
 
-export default function GradesGrid({ students, subjects, grades, onGradeChange }: Props) {
+export default function GradesGrid({ students, subjects, grades, suggestions, onGradeChange }: Props) {
   const { user } = useAuth()
   const { t }    = useTranslation()
   const [openCell, setOpenCell] = useState<string | null>(null)
@@ -82,6 +94,9 @@ export default function GradesGrid({ students, subjects, grades, onGradeChange }
                 const key   = gradeKey(student.id, subject.id)
                 const grade = grades.get(key)
                 const score = grade?.deletedAt ? undefined : grade?.score
+                const suggestion   = suggestions?.get(key)
+                const isSuggested  = score === undefined && suggestion !== undefined
+                const displayScore = score ?? suggestion
                 const editable = canEdit(subject)
                 const isOpen   = openCell === key
 
@@ -90,15 +105,15 @@ export default function GradesGrid({ students, subjects, grades, onGradeChange }
                     <button
                       onClick={() => handleCellClick(key, subject)}
                       disabled={!editable}
-                      title={editable ? t('grades.clickToSet') : t('grades.teacherOnly')}
+                      title={editable ? (isSuggested ? t('grades.suggestedHint') : t('grades.clickToSet')) : t('grades.teacherOnly')}
                       className={`
                         w-10 h-10 rounded-lg font-semibold text-sm transition-colors
-                        ${score ? SCORE_STYLE[score] : EMPTY_STYLE}
+                        ${score ? SCORE_STYLE[score] : isSuggested ? SUGGESTED_STYLE[suggestion] : EMPTY_STYLE}
                         ${editable ? 'cursor-pointer' : 'cursor-default'}
                         ${grade?.syncStatus === 'pending' ? 'ring-2 ring-amber-300' : ''}
                       `}
                     >
-                      {score ?? '—'}
+                      {displayScore ?? '—'}
                     </button>
 
                     {/* Score picker popover */}
@@ -114,7 +129,11 @@ export default function GradesGrid({ students, subjects, grades, onGradeChange }
                             <button
                               key={s}
                               onClick={() => handleScore(student.id, subject.id, s)}
-                              className={`w-9 h-9 rounded-lg font-semibold text-sm transition-colors ${SCORE_STYLE[s]}`}
+                              className={`
+                                w-9 h-9 rounded-lg font-semibold text-sm transition-colors
+                                ${SCORE_STYLE[s]}
+                                ${isSuggested && s === suggestion ? 'ring-2 ring-offset-1 ring-indigo-400' : ''}
+                              `}
                             >
                               {s}
                             </button>

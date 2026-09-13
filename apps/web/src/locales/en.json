@@ -232,7 +232,7 @@
   },
   "grades": {
     "title": "Grades",
-    "subtitle": "1 = lowest · 5 = highest · amber ring = not yet synced",
+    "subtitle": "1 = lowest · 5 = highest · amber ring = not yet synced · dashed = suggested, not yet confirmed",
     "class": "Class",
     "term": "Term",
     "customTerm": "custom…",
@@ -244,6 +244,7 @@
     "noStudents": "No students in this class yet.",
     "noSubjects": "No subjects scheduled for this class yet. Add a schedule entry first.",
     "clickToSet": "Click to set grade",
+    "suggestedHint": "Suggested from the semester average — click to confirm or change",
     "teacherOnly": "Only the subject teacher can edit this grade"
   },
   "schedule": {
@@ -265,6 +266,7 @@
     "day": "Day",
     "start": "Start",
     "end": "End",
+    "endAfterStart": "End time must be after the start time.",
     "subject": "Subject",
     "selectSubject": "Select subject…",
     "class": "Class",
@@ -306,7 +308,13 @@
     "homework": "Homework",
     "homeworkPlaceholder": "Tasks assigned…",
     "exportPdf": "Export PDF",
-    "exportWord": "Export Word"
+    "exportWord": "Export Word",
+    "time": "Time",
+    "subject": "Subject",
+    "noTopic": "No topic yet",
+    "edit": "Edit",
+    "cancel": "Cancel",
+    "save": "Save"
   },
   "reports": {
     "title": "Reports",
@@ -345,14 +353,12 @@
     "tabSummary": "Summary",
     "class": "Class",
     "date": "Date",
-    "slot": "Period",
     "from": "From",
     "to": "To",
     "present": "Present",
     "absent": "Absent",
     "excused": "Excused",
     "mark": {
-      "noSlot": "No schedule periods found for this class on the selected day.",
       "noStudents": "No students in this class.",
       "hint": "Click a status to cycle: Present → Absent → Excused → Present"
     },
@@ -381,7 +387,7 @@
     "addAssessment": "+ Add assessment",
     "importAssessments": "↑ Import",
     "importTitle": "Import assessments for this class",
-    "importColumnsHint": "Columns: student (first/last name or email), subject (name or code), title, type, score, maxScore, date, notes",
+    "importColumnsHint": "Columns: student (first/last name or email), subject (name or code), title, type, score, maxScore, grade (1-5, optional), date, notes",
     "importSkipped_one": "{{count}} row skipped — student or subject not recognized.",
     "importSkipped_other": "{{count}} rows skipped — student or subject not recognized.",
     "newAssessment": "New assessment",
@@ -394,6 +400,7 @@
     "date": "Date",
     "score": "Score",
     "maxScore": "Out of",
+    "grade": "Grade",
     "notes": "Notes",
     "avg": "Class avg",
     "edit": "Edit",

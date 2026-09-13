@@ -58,7 +58,7 @@ export async function createLocalAccount(input: CreateAccountInput): Promise<Loc
   const teacher: LocalTeacher = {
     id: crypto.randomUUID(),
     email: input.email,
-    role: input.role ?? 'admin',
+    role: input.role ?? 'teacher',
     firstName: input.firstName,
     lastName: input.lastName,
     updatedAt: new Date().toISOString(),

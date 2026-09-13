@@ -1,21 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { localDb, LocalClass, LocalStudent, LocalSchedule, LocalSubject, LocalAttendance } from '../lib/local-db'
+import { localDb, LocalClass, LocalStudent, LocalAttendance } from '../lib/local-db'
 import { useSync } from '../context/SyncContext'
 import { useAuth } from '../context/AuthContext'
 
 type Tab = 'mark' | 'summary'
 type AttendanceStatus = 'absent' | 'excused'
 
-// key for looking up an attendance record: `${studentId}:${scheduleId}:${date}`
-function attKey(studentId: string, scheduleId: string, date: string) {
-  return `${studentId}:${scheduleId}:${date}`
-}
-
-// derive day-of-week (0=Sun..6=Sat) from YYYY-MM-DD without timezone issues
-function dowFromDate(dateStr: string): number {
-  const [y, m, d] = dateStr.split('-').map(Number)
-  return new Date(y, m - 1, d).getDay()
+// key for looking up an attendance record: `${studentId}:${date}`
+function attKey(studentId: string, date: string) {
+  return `${studentId}:${date}`
 }
 
 function today(): string {
@@ -39,7 +33,6 @@ function nextStatus(current: AttendanceStatus | undefined): AttendanceStatus | n
 
 interface MarkViewProps {
   students:    LocalStudent[]
-  slot:        LocalSchedule | null
   date:        string
   attMap:      Map<string, LocalAttendance>
   onToggle:    (studentId: string, current: LocalAttendance | undefined) => void
@@ -47,18 +40,15 @@ interface MarkViewProps {
   onClearAll:  () => void
 }
 
-function MarkView({ students, slot, date, attMap, onToggle, onMarkAll, onClearAll }: MarkViewProps) {
+function MarkView({ students, date, attMap, onToggle, onMarkAll, onClearAll }: MarkViewProps) {
   const { t } = useTranslation()
 
-  if (!slot) {
-    return <p className="text-center py-16 text-sm text-gray-400">{t('attendance.mark.noSlot')}</p>
-  }
   if (students.length === 0) {
     return <p className="text-center py-16 text-sm text-gray-400">{t('attendance.mark.noStudents')}</p>
   }
 
-  const absentCount  = students.filter(s => attMap.get(attKey(s.id, slot.id, date))?.status === 'absent').length
-  const excusedCount = students.filter(s => attMap.get(attKey(s.id, slot.id, date))?.status === 'excused').length
+  const absentCount  = students.filter(s => attMap.get(attKey(s.id, date))?.status === 'absent').length
+  const excusedCount = students.filter(s => attMap.get(attKey(s.id, date))?.status === 'excused').length
   const presentCount = students.length - absentCount - excusedCount
 
   return (
@@ -81,7 +71,7 @@ function MarkView({ students, slot, date, attMap, onToggle, onMarkAll, onClearAl
 
       <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
         {students.map((s, i) => {
-          const rec    = attMap.get(attKey(s.id, slot.id, date))
+          const rec    = attMap.get(attKey(s.id, date))
           const status = rec?.deletedAt ? undefined : rec?.status
           return (
             <div
@@ -129,7 +119,7 @@ function SummaryView({ students, classId, dateFrom, dateTo }: SummaryViewProps) 
   useEffect(() => {
     if (!classId || !dateFrom || !dateTo) return
     localDb.attendances
-      .filter(a => !a.deletedAt && a.date >= dateFrom && a.date <= dateTo)
+      .filter(a => !a.deletedAt && a.classId === classId && a.date >= dateFrom && a.date <= dateTo)
       .toArray()
       .then(all => {
         const studentIds = new Set(students.map(s => s.id))
@@ -216,9 +206,6 @@ export default function AttendancePage() {
   const [dateTo,   setDateTo]   = useState<string>(today())
 
   const [students,  setStudents]  = useState<LocalStudent[]>([])
-  const [slots,     setSlots]     = useState<LocalSchedule[]>([])   // schedules for class on that day
-  const [subjects,  setSubjects]  = useState<Map<string, LocalSubject>>(new Map())
-  const [slotId,    setSlotId]    = useState<string>('')
   const [attMap,    setAttMap]    = useState<Map<string, LocalAttendance>>(new Map())
 
   // Load classes once
@@ -233,42 +220,24 @@ export default function AttendancePage() {
   // Reload when class or date changes (mark tab data)
   const reload = useCallback(async () => {
     if (!classId) return
-    const dow = dowFromDate(date)
 
-    const [allStudents, allSchedules, allSubjects] = await Promise.all([
-      localDb.students.filter(s => !s.deletedAt && s.classId === classId).toArray(),
-      localDb.schedules.filter(s => !s.deletedAt && s.classId === classId && s.dayOfWeek === dow).toArray(),
-      localDb.subjects.filter(s => !s.deletedAt).toArray(),
-    ])
-
+    const allStudents = await localDb.students.filter(s => !s.deletedAt && s.classId === classId).toArray()
     const sorted = allStudents.sort((a, b) => a.lastName.localeCompare(b.lastName))
     setStudents(sorted)
-    setSlots(allSchedules.sort((a, b) => a.startTime.localeCompare(b.startTime)))
-    setSubjects(new Map(allSubjects.map(s => [s.id, s])))
-
-    // Default to first slot
-    if (!slotId || !allSchedules.find(s => s.id === slotId)) {
-      setSlotId(allSchedules[0]?.id ?? '')
-    }
 
     // Load attendance records for this class + date
-    if (allSchedules.length > 0) {
-      const scheduleIds = new Set(allSchedules.map(s => s.id))
-      const recs = await localDb.attendances
-        .filter(a => !a.deletedAt && scheduleIds.has(a.scheduleId) && a.date === date)
-        .toArray()
-      const map = new Map<string, LocalAttendance>()
-      for (const r of recs) map.set(attKey(r.studentId, r.scheduleId, r.date), r)
-      setAttMap(map)
-    } else {
-      setAttMap(new Map())
-    }
-  }, [classId, date, slotId])
+    const recs = await localDb.attendances
+      .filter(a => !a.deletedAt && a.classId === classId && a.date === date)
+      .toArray()
+    const map = new Map<string, LocalAttendance>()
+    for (const r of recs) map.set(attKey(r.studentId, r.date), r)
+    setAttMap(map)
+  }, [classId, date])
 
   useEffect(() => { reload() }, [reload])
 
   async function handleToggle(studentId: string, existing: LocalAttendance | undefined) {
-    if (!user || !slotId) return
+    if (!user || !classId) return
     const next = nextStatus(existing?.status)
     const now  = new Date().toISOString()
 
@@ -285,7 +254,7 @@ export default function AttendancePage() {
       await localDb.attendances.add({
         id:         globalThis.crypto.randomUUID(),
         studentId,
-        scheduleId: slotId,
+        classId,
         date,
         status:     next,
         teacherId:  user.id,
@@ -299,17 +268,17 @@ export default function AttendancePage() {
   }
 
   async function handleMarkAll(status: AttendanceStatus) {
-    if (!user || !slotId) return
+    if (!user || !classId) return
     const now = new Date().toISOString()
     for (const s of students) {
-      const existing = attMap.get(attKey(s.id, slotId, date))
+      const existing = attMap.get(attKey(s.id, date))
       if (existing && !existing.deletedAt) {
         await localDb.attendances.update(existing.id, { status, updatedAt: now, syncStatus: 'pending' })
       } else {
         await localDb.attendances.add({
           id:         globalThis.crypto.randomUUID(),
           studentId:  s.id,
-          scheduleId: slotId,
+          classId,
           date,
           status,
           teacherId:  user.id,
@@ -323,10 +292,10 @@ export default function AttendancePage() {
   }
 
   async function handleClearAll() {
-    if (!slotId) return
+    if (!classId) return
     const now = new Date().toISOString()
     for (const s of students) {
-      const existing = attMap.get(attKey(s.id, slotId, date))
+      const existing = attMap.get(attKey(s.id, date))
       if (existing && !existing.deletedAt) {
         await localDb.attendances.update(existing.id, { deletedAt: now, updatedAt: now, syncStatus: 'pending' })
       }
@@ -335,9 +304,7 @@ export default function AttendancePage() {
     sync()
   }
 
-  const selectedSlot    = slots.find(s => s.id === slotId) ?? null
-  const selectedClass   = classes.find(c => c.id === classId)
-  const selectedSubject = selectedSlot ? subjects.get(selectedSlot.subjectId) : null
+  const selectedClass = classes.find(c => c.id === classId)
 
   return (
     <div className="p-6">
@@ -391,31 +358,10 @@ export default function AttendancePage() {
               />
             </div>
 
-            {/* Slot (subject for that date) */}
-            {slots.length > 0 && (
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">{t('attendance.slot')}</label>
-                <select
-                  value={slotId}
-                  onChange={e => setSlotId(e.target.value)}
-                  className="h-9 px-3 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {slots.map(s => {
-                    const sub = subjects.get(s.subjectId)
-                    return (
-                      <option key={s.id} value={s.id}>
-                        {sub?.name ?? '?'} · {s.startTime}–{s.endTime}
-                      </option>
-                    )
-                  })}
-                </select>
-              </div>
-            )}
-
             {/* Context label */}
-            {selectedClass && selectedSubject && (
+            {selectedClass && (
               <div className="text-sm text-gray-400 pb-2">
-                {selectedClass.name} · {selectedSubject.name} · {date}
+                {selectedClass.name} · {date}
               </div>
             )}
           </>
@@ -448,7 +394,6 @@ export default function AttendancePage() {
       {tab === 'mark' ? (
         <MarkView
           students={students}
-          slot={selectedSlot}
           date={date}
           attMap={attMap}
           onToggle={handleToggle}

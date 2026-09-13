@@ -5,7 +5,11 @@ import { useSync } from '../context/SyncContext'
 import { useAuth } from '../context/AuthContext'
 import GradesGrid from '../components/grades/GradesGrid'
 
-const TERM_OPTIONS = ['Term 1', 'Term 2', 'Term 3', 'Semester 1', 'Semester 2']
+const SEMESTER_1 = 'Semester 1'
+const SEMESTER_2 = 'Semester 2'
+const FINAL_YEAR = 'Final Year'
+
+const TERM_OPTIONS = [SEMESTER_1, SEMESTER_2, FINAL_YEAR]
 
 function gradeKey(studentId: string, subjectId: string) {
   return `${studentId}:${subjectId}`
@@ -20,9 +24,10 @@ export default function GradesPage() {
   const [students,  setStudents]  = useState<LocalStudent[]>([])
   const [subjects,  setSubjects]  = useState<LocalSubject[]>([]) // those scheduled for selected class
   const [gradesMap, setGradesMap] = useState<Map<string, LocalGrade>>(new Map())
+  const [suggestions, setSuggestions] = useState<Map<string, 1|2|3|4|5>>(new Map())
 
   const [classId,    setClassId]    = useState<string>('')
-  const [term,       setTerm]       = useState<string>('Term 1')
+  const [term,       setTerm]       = useState<string>(SEMESTER_1)
   const [customTerm, setCustomTerm] = useState<string>('')
   const [useCustom,  setUseCustom]  = useState<boolean>(false)
 
@@ -41,11 +46,16 @@ export default function GradesPage() {
   const reload = useCallback(async () => {
     if (!classId || !activeTerm) return
 
-    const [allStudents, allSchedules, allSubjects, allGrades] = await Promise.all([
+    const isFinalYear = activeTerm === FINAL_YEAR
+
+    const [allStudents, allSchedules, allSubjects, allGrades, semesterGrades] = await Promise.all([
       localDb.students.filter(s => !s.deletedAt && s.classId === classId).toArray(),
       localDb.schedules.filter(s => !s.deletedAt && s.classId === classId).toArray(),
       localDb.subjects.filter(s => !s.deletedAt).toArray(),
       localDb.grades.filter(g => !g.deletedAt && g.classId === classId && g.term === activeTerm).toArray(),
+      isFinalYear
+        ? localDb.grades.filter(g => !g.deletedAt && g.classId === classId && (g.term === SEMESTER_1 || g.term === SEMESTER_2)).toArray()
+        : Promise.resolve([] as LocalGrade[]),
     ])
 
     // Only subjects that are actually scheduled for this class
@@ -61,9 +71,30 @@ export default function GradesPage() {
       map.set(gradeKey(g.studentId, g.subjectId), g)
     }
 
+    // Final Year suggestions: average of both semester grades, only when
+    // both are present — a single semester's grade isn't a fair stand-in
+    // for the other half of the year.
+    const suggestionMap = new Map<string, 1|2|3|4|5>()
+    if (isFinalYear) {
+      const bySemester = new Map<string, { s1?: number; s2?: number }>()
+      for (const g of semesterGrades) {
+        const key = gradeKey(g.studentId, g.subjectId)
+        const entry = bySemester.get(key) ?? {}
+        if (g.term === SEMESTER_1) entry.s1 = g.score
+        if (g.term === SEMESTER_2) entry.s2 = g.score
+        bySemester.set(key, entry)
+      }
+      for (const [key, { s1, s2 }] of bySemester) {
+        if (s1 !== undefined && s2 !== undefined) {
+          suggestionMap.set(key, Math.round((s1 + s2) / 2) as 1|2|3|4|5)
+        }
+      }
+    }
+
     setStudents(sorted)
     setSubjects(classSubjects)
     setGradesMap(map)
+    setSuggestions(suggestionMap)
   }, [classId, activeTerm])
 
   useEffect(() => { reload() }, [reload])
@@ -173,6 +204,7 @@ export default function GradesPage() {
           students={students}
           subjects={subjects}
           grades={gradesMap}
+          suggestions={suggestions}
           onGradeChange={handleGradeChange}
         />
       ) : (
