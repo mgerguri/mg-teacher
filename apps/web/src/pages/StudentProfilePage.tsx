@@ -129,6 +129,7 @@ export default function StudentProfilePage() {
   const [conductNotes, setConductNotes] = useState<LocalConductNote[]>([])
   const [contactLogs,  setContactLogs]  = useState<LocalContactLog[]>([])
   const [editing,      setEditing]      = useState(false)
+  const [reportError,  setReportError]  = useState<string | null>(null)
 
   // Inline add-conduct-note form
   const [conductForm,  setConductForm]  = useState({ date: new Date().toISOString().slice(0, 10), category: 'neutral' as LocalConductNote['category'], note: '' })
@@ -242,6 +243,16 @@ export default function StudentProfilePage() {
     sync()
   }
 
+  async function handleDownloadReport() {
+    if (!student) return
+    setReportError(null)
+    try {
+      await downloadProgressReport(student, cls, grades, subjects, attendance, t)
+    } catch {
+      setReportError(t('studentProfile.reportError'))
+    }
+  }
+
   if (!student) {
     return <div className="p-6 text-sm text-gray-400">{t('common.loading')}</div>
   }
@@ -259,6 +270,8 @@ export default function StudentProfilePage() {
         <span className="text-gray-700">{student.firstName} {student.lastName}</span>
       </div>
 
+      {reportError && <p className="text-sm text-red-600 mb-4">{reportError}</p>}
+
       {/* Header card */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6">
         <div className="flex items-start justify-between mb-5">
@@ -274,7 +287,7 @@ export default function StudentProfilePage() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => downloadProgressReport(student, cls, grades, subjects, attendance, t)}
+              onClick={handleDownloadReport}
               className="px-3 py-1.5 border border-gray-200 hover:bg-gray-50 text-sm text-gray-600 rounded-lg transition-colors"
             >
               {t('studentProfile.downloadReport')}

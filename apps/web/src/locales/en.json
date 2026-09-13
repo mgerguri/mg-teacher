@@ -16,6 +16,7 @@
     "teachers": "Teachers",
     "assessments": "Assessments",
     "schedule": "Schedule",
+    "settings": "Settings",
     "signOut": "Sign out",
     "syncing": "Syncing…",
     "syncError": "Sync error"
@@ -148,6 +149,7 @@
     "trend": "Trend",
     "progressReport": "Progress Report",
     "downloadReport": "Download report",
+    "reportError": "Couldn't save the report. Check that the destination folder is writable and try again.",
     "conductTitle": "Conduct notes",
     "contactLogTitle": "Parent contact log"
   },
@@ -277,6 +279,8 @@
     "cancel": "Cancel",
     "saveChanges": "Save changes",
     "addEntry": "Add entry",
+    "classConflict": "This class already has an entry that overlaps this time.",
+    "teacherConflict": "This teacher already has an entry that overlaps this time.",
     "monday": "Monday",
     "tuesday": "Tuesday",
     "wednesday": "Wednesday",
@@ -309,6 +313,7 @@
     "homeworkPlaceholder": "Tasks assigned…",
     "exportPdf": "Export PDF",
     "exportWord": "Export Word",
+    "exportError": "Couldn't save the file. Check that the destination folder is writable and try again.",
     "time": "Time",
     "subject": "Subject",
     "noTopic": "No topic yet",
@@ -344,7 +349,8 @@
     },
     "export": {
       "excel": "Export Excel",
-      "pdf": "Export PDF"
+      "pdf": "Export PDF",
+      "error": "Couldn't save the file. Check that the destination folder is writable and try again."
     }
   },
   "attendance": {
@@ -414,6 +420,29 @@
       "exam": "Exam",
       "homework": "Homework",
       "other": "Other"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "adminOnly": "Admin access required.",
+    "backup": {
+      "title": "Backup & restore",
+      "subtitle": "All data for this app lives on this device only. Export a full backup regularly, and keep a copy somewhere safe in case this computer is lost or its disk fails.",
+      "exportButton": "Export full backup",
+      "exporting": "Exporting…",
+      "exportError": "Couldn't save the backup file. Check that the destination folder is writable and try again.",
+      "restoreTitle": "Restore from backup",
+      "restoreSubtitle": "Restoring replaces everything currently on this device — students, grades, attendance, schedules, everything — with the contents of the backup file.",
+      "chooseFile": "Choose backup file…",
+      "restoreButton": "Restore",
+      "cancel": "Cancel",
+      "restoreConfirm": "This will erase all current data on this device and replace it with the backup. This can't be undone.",
+      "confirmYes": "Yes, restore",
+      "confirmNo": "Cancel",
+      "restoring": "Restoring…",
+      "restoreError": "Couldn't restore this file. Make sure it's a backup exported from this app.",
+      "restoreVersionError": "This backup was made with a different app version and can't be restored here.",
+      "restoreSuccess": "Restore complete. Reloading…"
     }
   },
   "common": {

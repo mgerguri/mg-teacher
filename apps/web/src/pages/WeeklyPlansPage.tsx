@@ -141,6 +141,7 @@ export default function WeeklyPlansPage() {
   const [plan,       setPlan]       = useState<LocalWeeklyPlan | null>(null)
   const [entries,    setEntries]    = useState<LocalWeeklyPlanEntry[]>([])
   const [exporting,  setExporting]  = useState<'pdf' | 'word' | null>(null)
+  const [exportError, setExportError] = useState<string | null>(null)
   const [editingSlot, setEditingSlot] = useState<SlotEntry | null>(null)
 
   // Load classes once
@@ -291,13 +292,17 @@ export default function WeeklyPlansPage() {
 
   async function handleExportPDF() {
     setExporting('pdf')
+    setExportError(null)
     try { await exportPlanToPDF(buildExportData()) }
+    catch { setExportError(t('plans.exportError')) }
     finally { setExporting(null) }
   }
 
   async function handleExportWord() {
     setExporting('word')
+    setExportError(null)
     try { await exportPlanToWord(buildExportData()) }
+    catch { setExportError(t('plans.exportError')) }
     finally { setExporting(null) }
   }
 
@@ -330,6 +335,8 @@ export default function WeeklyPlansPage() {
           </div>
         )}
       </div>
+
+      {exportError && <p className="text-sm text-red-600 -mt-4 mb-6">{exportError}</p>}
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-end gap-4 mb-8">

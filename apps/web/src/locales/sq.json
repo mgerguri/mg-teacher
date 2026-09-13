@@ -16,6 +16,7 @@
     "teachers": "Mësuesit",
     "assessments": "Vlerësimet",
     "schedule": "Orari",
+    "settings": "Cilësimet",
     "signOut": "Dilni",
     "syncing": "Duke sinkronizuar…",
     "syncError": "Gabim sinkronizimi"
@@ -148,6 +149,7 @@
     "trend": "Tendenca",
     "progressReport": "Raport Progresi",
     "downloadReport": "Shkarko raportin",
+    "reportError": "Raporti nuk u ruajt dot. Kontrolloni që dosja e destinacionit është e shkrueshme dhe provoni përsëri.",
     "conductTitle": "Shënime sjelljeje",
     "contactLogTitle": "Regjistri i kontakteve me prindërit"
   },
@@ -277,6 +279,8 @@
     "cancel": "Anulo",
     "saveChanges": "Ruaj ndryshimet",
     "addEntry": "Shto hyrje",
+    "classConflict": "Kjo klasë ka tashmë një hyrje që përplaset me këtë orar.",
+    "teacherConflict": "Ky mësues ka tashmë një hyrje që përplaset me këtë orar.",
     "monday": "E Hënë",
     "tuesday": "E Martë",
     "wednesday": "E Mërkurë",
@@ -309,6 +313,7 @@
     "homeworkPlaceholder": "Detyrat e shtëpisë…",
     "exportPdf": "Eksporto PDF",
     "exportWord": "Eksporto Word",
+    "exportError": "Skedari nuk u ruajt dot. Kontrolloni që dosja e destinacionit është e shkrueshme dhe provoni përsëri.",
     "time": "Ora",
     "subject": "Lënda",
     "noTopic": "Ende pa temë",
@@ -344,7 +349,8 @@
     },
     "export": {
       "excel": "Eksporto Excel",
-      "pdf": "Eksporto PDF"
+      "pdf": "Eksporto PDF",
+      "error": "Skedari nuk u ruajt dot. Kontrolloni që dosja e destinacionit është e shkrueshme dhe provoni përsëri."
     }
   },
   "attendance": {
@@ -414,6 +420,29 @@
       "exam": "Provim",
       "homework": "Detyrë shtëpie",
       "other": "Tjetër"
+    }
+  },
+  "settings": {
+    "title": "Cilësimet",
+    "adminOnly": "Kërkohet qasje administrative.",
+    "backup": {
+      "title": "Kopja rezervë & rikthimi",
+      "subtitle": "Të gjitha të dhënat e kësaj aplikacioni jetojnë vetëm në këtë pajisje. Eksportoni një kopje rezervë të plotë rregullisht dhe ruani një kopje diku tjetër të sigurt në rast se ky kompjuter humbet ose disku i tij dëmtohet.",
+      "exportButton": "Eksporto kopje rezervë të plotë",
+      "exporting": "Duke eksportuar…",
+      "exportError": "Skedari i kopjes rezervë nuk u ruajt dot. Kontrolloni që dosja e destinacionit është e shkrueshme dhe provoni përsëri.",
+      "restoreTitle": "Rikthe nga kopja rezervë",
+      "restoreSubtitle": "Rikthimi zëvendëson gjithçka që gjendet aktualisht në këtë pajisje — nxënës, nota, prezencë, orare, gjithçka — me përmbajtjen e skedarit të kopjes rezervë.",
+      "chooseFile": "Zgjidhni skedarin e kopjes rezervë…",
+      "restoreButton": "Rikthe",
+      "cancel": "Anulo",
+      "restoreConfirm": "Kjo do të fshijë të gjitha të dhënat aktuale në këtë pajisje dhe do t'i zëvendësojë me kopjen rezervë. Kjo nuk mund të zhbëhet.",
+      "confirmYes": "Po, rikthe",
+      "confirmNo": "Anulo",
+      "restoring": "Duke rikthyer…",
+      "restoreError": "Ky skedar nuk u rikthye dot. Sigurohuni që është një kopje rezervë e eksportuar nga ky aplikacion.",
+      "restoreVersionError": "Kjo kopje rezervë u krijua me një version tjetër të aplikacionit dhe nuk mund të rikthehet këtu.",
+      "restoreSuccess": "Rikthimi përfundoi. Duke ringarkuar…"
     }
   },
   "common": {
