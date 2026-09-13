@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { localDb, LocalAssessment, LocalStudent, LocalSubject, LocalClass } from '../lib/local-db'
 import { useAuth } from '../context/AuthContext'
@@ -97,7 +97,7 @@ export default function AssessmentsPage() {
 
   // ── Load ────────────────────────────────────────────────────────────────────
 
-  async function reload() {
+  const reload = useCallback(async () => {
     const [cl, st, su, as] = await Promise.all([
       localDb.classes.filter((c: { deletedAt?: string }) => !c.deletedAt).toArray(),
       localDb.students.filter((s: { deletedAt?: string }) => !s.deletedAt).toArray(),
@@ -110,9 +110,9 @@ export default function AssessmentsPage() {
     setStudents(scopeByClassId(st, user, ownClassIds))
     setSubjects(scopeSubjects(su, user))
     setAssessments(scopeByClassId(as, user, ownClassIds))
-  }
+  }, [user])
 
-  useEffect(() => { reload() }, [user])
+  useEffect(() => { reload() }, [reload])
 
   // ── Derived ─────────────────────────────────────────────────────────────────
 

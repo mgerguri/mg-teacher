@@ -67,8 +67,8 @@ function TeacherModal({
         if (!res.ok) throw new Error((await res.json()).error ?? 'Failed')
       }
       onDone()
-    } catch (err: any) {
-      setError(err.message ?? 'Something went wrong')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
       setSaving(false)
     }
@@ -83,8 +83,8 @@ function TeacherModal({
       })
       if (!res.ok) throw new Error((await res.json()).error ?? 'Failed')
       onDone()
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
       setSaving(false)
       setConfirming(false)
@@ -210,17 +210,23 @@ export default function TeachersPage() {
   const [teachers, setTeachers] = useState<LocalTeacher[]>([])
   const [modal, setModal]       = useState<{ open: boolean; teacher: LocalTeacher | null }>({ open: false, teacher: null })
 
-  // Admin guard
-  if (user?.role !== 'admin') {
-    return <div className="p-6 text-sm text-gray-400">{t('teachers.adminOnly')}</div>
-  }
-
   const reload = useCallback(async () => {
     const all = await localDb.teachers.toArray()
     setTeachers(all.sort((a, b) => a.lastName.localeCompare(b.lastName)))
   }, [])
 
   useEffect(() => { reload() }, [reload])
+
+  // Admin guard. This has to come *after* every hook: React identifies hooks
+  // by call order, so returning early above them means a render where the
+  // user is not (yet) an admin calls fewer hooks than one where they are.
+  // The moment the role resolves or changes — this page has no route-level
+  // guard, and AuthContext revalidates the cached user against /api/auth/me
+  // on startup — React throws "Rendered more hooks than during the previous
+  // render" and the page white-screens.
+  if (user?.role !== 'admin') {
+    return <div className="p-6 text-sm text-gray-400">{t('teachers.adminOnly')}</div>
+  }
 
   function handleDone() {
     setModal({ open: false, teacher: null })

@@ -69,8 +69,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else if (res.ok) {
           const fresh: AuthUser = await res.json()
           if (cancelled) return
-          localStorage.setItem(USER_KEY, JSON.stringify(fresh))
-          setUser(fresh)
+          const serialised = JSON.stringify(fresh)
+          localStorage.setItem(USER_KEY, serialised)
+          // Only swap the object in when something actually changed. Several
+          // effects around the app key off `user`, and handing them a new
+          // identity holding identical data re-runs them for nothing.
+          setUser(prev => (prev && JSON.stringify(prev) === serialised ? prev : fresh))
         }
         // Any other status (5xx, proxy error…) means the server could not
         // answer, not that the session is bad. Keep the cached user.

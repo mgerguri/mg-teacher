@@ -46,6 +46,16 @@ interface ServerRecord {
   [key: string]: unknown
 }
 
+// The shape every synced table shares. Enough to drive push/pull generically
+// without reaching for `any` at each call site.
+interface SyncedRow {
+  id: string
+  updatedAt: string
+  syncStatus: SyncStatus
+}
+
+type AnySyncTable = Dexie.Table<SyncedRow, string>
+
 // Returns true if incoming record is newer than what we have locally.
 function isNewer(incoming: string, existing: string | undefined): boolean {
   if (!existing) return true
@@ -58,10 +68,10 @@ export class SyncEngine {
   // ── Push ────────────────────────────────────────────────────────────────────
 
   async push(token: string): Promise<void> {
-    const pending = {} as Record<SyncTable, { id: string; updatedAt: string }[]>
+    const pending = {} as Record<SyncTable, SyncedRow[]>
     await Promise.all(
       SYNC_TABLES.map(async name => {
-        pending[name] = await (localDb[name] as Dexie.Table<any>).where('syncStatus').equals('pending').toArray()
+        pending[name] = await (localDb[name] as AnySyncTable).where('syncStatus').equals('pending').toArray()
       })
     )
 
@@ -80,7 +90,7 @@ export class SyncEngine {
 
     await localDb.transaction('rw', SYNC_TABLES.map(name => localDb[name]), async () => {
       for (const name of SYNC_TABLES) {
-        const table = localDb[name] as Dexie.Table<any>
+        const table = localDb[name] as AnySyncTable
         const rejected = new Set(body.rejected?.[name] ?? [])
 
         for (const sent of pending[name]) {
@@ -165,15 +175,12 @@ export class SyncEngine {
 
   // ── Merge (LWW) ─────────────────────────────────────────────────────────────
 
-  private async mergeTable(
-    table: 'students' | 'subjects' | 'classes' | 'schedules' | 'grades' | 'attendances' | 'weeklyPlans' | 'weeklyPlanEntries' | 'conductNotes' | 'contactLogs' | 'assessments',
-    records: ServerRecord[]
-  ): Promise<void> {
+  private async mergeTable(table: SyncTable, records: ServerRecord[]): Promise<void> {
     if (records.length === 0) return
 
-    const dexieTable = localDb[table] as Dexie.Table<{ id: string; updatedAt: string; syncStatus: SyncStatus }>
+    const dexieTable = localDb[table] as AnySyncTable
     const existing = await dexieTable.bulkGet(records.map(r => r.id))
-    const toUpsert: object[] = []
+    const toUpsert: SyncedRow[] = []
 
     for (let i = 0; i < records.length; i++) {
       const server = records[i]
@@ -183,11 +190,11 @@ export class SyncEngine {
         continue // keep the newer local pending write
       }
 
-      toUpsert.push({ ...server, syncStatus: 'synced' })
+      toUpsert.push({ ...server, syncStatus: 'synced' } as SyncedRow)
     }
 
     if (toUpsert.length > 0) {
-      await (dexieTable as any).bulkPut(toUpsert)
+      await dexieTable.bulkPut(toUpsert)
     }
   }
 

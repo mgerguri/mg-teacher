@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import bcrypt from 'bcryptjs'
 import { randomUUID } from 'crypto'
 import { eq } from 'drizzle-orm'
@@ -14,7 +14,7 @@ type Role = 'admin' | 'teacher'
 // jwtVerify() throws on a missing/expired/forged token. Letting that escape
 // turns an unauthenticated request into a 500 from the error handler instead
 // of a 401, which is both wrong for clients and noisy in the logs.
-async function requireAdmin(req: any, reply: any) {
+async function requireAdmin(req: FastifyRequest, reply: FastifyReply) {
   try {
     await req.jwtVerify()
   } catch {
@@ -134,7 +134,7 @@ export async function adminRoutes(app: FastifyInstance) {
     // never fired and an admin could lock themselves out. With one admin on
     // the instance that locks everyone out of the Teachers page for good,
     // since only an admin can reset a password.
-    if ((req as any).user?.sub === id) {
+    if (req.user?.sub === id) {
       return reply.status(400).send({ error: 'Cannot deactivate yourself' })
     }
     // Lock the account by setting a random password hash

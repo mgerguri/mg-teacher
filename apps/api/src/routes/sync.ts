@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify'
 import { gt, lt, and, eq, inArray } from 'drizzle-orm'
 import { db } from '../db.js'
 import { pg } from '@mg-teacher/db'
+import type { PgColumn, PgTable } from 'drizzle-orm/pg-core'
 
 const { users, students, subjects, classes, schedules, grades, attendances, weeklyPlans, weeklyPlanEntries, conductNotes, contactLogs, assessments } = pg
 
@@ -203,8 +204,8 @@ export async function syncRoutes(app: FastifyInstance) {
         // below) by re-pushing its known id with themselves as owner, so
         // filterOwned also requires whatever the row's owner already was in
         // the DB (if it exists at all) to already be the requester.
-        classes_  = await filterOwned(classes_, classes,  'teacherId', v => v === userId)
-        subjects_ = await filterOwned(subjects_, subjects, 'teacherId', v => v === userId)
+        classes_  = await filterOwned(classes_, classes,  classes.teacherId, 'teacherId', v => v === userId)
+        subjects_ = await filterOwned(subjects_, subjects, subjects.teacherId, 'teacherId', v => v === userId)
 
         // Ownership includes what's already in the DB *and* what's being
         // validly self-created in this same batch — a class and its
@@ -214,11 +215,11 @@ export async function syncRoutes(app: FastifyInstance) {
         const ownedClassIds = new Set([...dbOwnedClasses.map(c => c.id), ...classes_.map(c => c.id)])
         const isOwnedClass = (v: string) => ownedClassIds.has(v)
 
-        students_    = await filterOwned(students_,    students,    'classId', isOwnedClass)
-        schedules_   = await filterOwned(schedules_,   schedules,   'classId', isOwnedClass)
-        grades_      = await filterOwned(grades_,      grades,      'classId', isOwnedClass)
-        weeklyPlans_ = await filterOwned(weeklyPlans_, weeklyPlans, 'classId', isOwnedClass)
-        assessments_ = await filterOwned(assessments_, assessments, 'classId', isOwnedClass)
+        students_    = await filterOwned(students_,    students,    students.classId,    'classId', isOwnedClass)
+        schedules_   = await filterOwned(schedules_,   schedules,   schedules.classId,   'classId', isOwnedClass)
+        grades_      = await filterOwned(grades_,      grades,      grades.classId,      'classId', isOwnedClass)
+        weeklyPlans_ = await filterOwned(weeklyPlans_, weeklyPlans, weeklyPlans.classId, 'classId', isOwnedClass)
+        assessments_ = await filterOwned(assessments_, assessments, assessments.classId, 'classId', isOwnedClass)
 
         const idsArr = [...ownedClassIds]
         const [dbOwnedStudents, dbOwnedPlans] = idsArr.length
@@ -234,10 +235,10 @@ export async function syncRoutes(app: FastifyInstance) {
         // Attendance is per-day and carries classId, not scheduleId — it was
         // being filtered on a column the client no longer sends, which
         // dropped every incoming attendance row on the floor.
-        attendances_       = await filterOwned(attendances_,  attendances,       'classId',    isOwnedClass)
-        conductNotes_      = await filterOwned(conductNotes_,  conductNotes,      'studentId',  v => ownedStudentIds.has(v))
-        contactLogs_       = await filterOwned(contactLogs_, contactLogs,      'studentId',  v => ownedStudentIds.has(v))
-        weeklyPlanEntries_ = await filterOwned(weeklyPlanEntries_, weeklyPlanEntries, 'planId',     v => ownedPlanIds.has(v))
+        attendances_       = await filterOwned(attendances_,  attendances,       attendances.classId,      'classId',    isOwnedClass)
+        conductNotes_      = await filterOwned(conductNotes_,  conductNotes,      conductNotes.studentId,   'studentId',  v => ownedStudentIds.has(v))
+        contactLogs_       = await filterOwned(contactLogs_, contactLogs,      contactLogs.studentId,    'studentId',  v => ownedStudentIds.has(v))
+        weeklyPlanEntries_ = await filterOwned(weeklyPlanEntries_, weeklyPlanEntries, weeklyPlanEntries.planId, 'planId',     v => ownedPlanIds.has(v))
       }
 
       // Staged in FK dependency order — a class and everything under it
@@ -308,23 +309,27 @@ function hasUsableTimestamps(r: SyncRecord): boolean {
 // state alone wouldn't stop writing a brand new row into someone else's
 // scope. `table` needs an `id` column and a column named `fkColumn`.
 
+// `fkColumn` is the Drizzle column to read in the database; `fkKey` is the
+// matching property on the incoming JSON record. They are named differently
+// on each side (class_id vs classId), so both are needed.
 async function filterOwned<T extends SyncRecord>(
   records: T[],
-  table: any,
-  fkColumn: string,
+  table: PgTable & { id: PgColumn },
+  fkColumn: PgColumn,
+  fkKey: string,
   isOwned: (value: string) => boolean
 ): Promise<T[]> {
   if (!records.length) return []
 
   const ids = records.map(r => r.id)
   const existing = await db
-    .select({ id: table.id, fk: table[fkColumn] })
+    .select({ id: table.id, fk: fkColumn })
     .from(table)
     .where(inArray(table.id, ids))
-  const existingBysId = new Map(existing.map((e: any) => [e.id as string, e.fk as string | null]))
+  const existingBysId = new Map(existing.map(e => [e.id as string, e.fk as string | null]))
 
   return records.filter(r => {
-    const incoming = r[fkColumn] as string | undefined
+    const incoming = r[fkKey] as string | undefined
     if (typeof incoming !== 'string' || !isOwned(incoming)) return false
     const prior = existingBysId.get(r.id)
     if (prior !== undefined && prior !== null && !isOwned(prior)) return false
