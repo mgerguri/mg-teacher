@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { localDb, LocalClass, LocalStudent, LocalAttendance } from '../lib/local-db'
 import { useSync } from '../context/SyncContext'
 import { useAuth } from '../context/AuthContext'
+import { scopeClasses } from '../lib/scope'
 
 type Tab = 'mark' | 'summary'
 type AttendanceStatus = 'absent' | 'excused'
@@ -211,11 +212,11 @@ export default function AttendancePage() {
   // Load classes once
   useEffect(() => {
     localDb.classes.filter(c => !c.deletedAt).toArray().then(all => {
-      const sorted = all.sort((a, b) => a.name.localeCompare(b.name))
+      const sorted = scopeClasses(all, user).sort((a, b) => a.name.localeCompare(b.name))
       setClasses(sorted)
       if (sorted.length && !classId) setClassId(sorted[0].id)
     })
-  }, [])
+  }, [user])
 
   // Reload when class or date changes (mark tab data)
   const reload = useCallback(async () => {

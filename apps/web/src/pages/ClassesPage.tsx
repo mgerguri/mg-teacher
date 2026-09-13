@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { localDb, LocalClass } from '../lib/local-db'
+import { localDb, LocalClass, LocalTeacher } from '../lib/local-db'
 import { useSync } from '../context/SyncContext'
+import { useAuth } from '../context/AuthContext'
+import { scopeClasses } from '../lib/scope'
 import ClassModal from '../components/students/ClassModal'
 import BulkImportModal from '../components/common/BulkImportModal'
 import { ColumnMap } from '../lib/spreadsheet'
@@ -24,24 +26,30 @@ const CLASS_PREVIEW_COLUMNS: { key: ClassImportField; label: string }[] = [
 export default function ClassesPage() {
   const navigate  = useNavigate()
   const { sync }  = useSync()
+  const { user }  = useAuth()
   const { t }     = useTranslation()
   const [classes, setClasses] = useState<LocalClass[]>([])
+  const [teachers, setTeachers] = useState<LocalTeacher[]>([])
   const [counts,  setCounts]  = useState<Record<string, number>>({})
   const [modal,   setModal]   = useState<{ open: boolean; cls: LocalClass | null }>({ open: false, cls: null })
   const [showImport, setShowImport] = useState(false)
 
   const reload = useCallback(async () => {
-    const cls = await localDb.classes.filter(c => !c.deletedAt).toArray()
-    setClasses(cls)
+    const [cls, tes] = await Promise.all([
+      localDb.classes.filter(c => !c.deletedAt).toArray(),
+      localDb.teachers.toArray(),
+    ])
+    setClasses(scopeClasses(cls, user))
+    setTeachers(tes)
     const all = await localDb.students.filter(s => !s.deletedAt).toArray()
     const map: Record<string, number> = {}
     for (const s of all) if (s.classId) map[s.classId] = (map[s.classId] ?? 0) + 1
     setCounts(map)
-  }, [])
+  }, [user])
 
   useEffect(() => { reload() }, [reload])
 
-  async function handleSave(data: { name: string; gradeLevel: string; academicYear: string }) {
+  async function handleSave(data: { name: string; gradeLevel: string; academicYear: string; teacherId?: string }) {
     const now = new Date().toISOString()
     if (modal.cls) {
       await localDb.classes.update(modal.cls.id, { ...data, updatedAt: now, syncStatus: 'pending' })
@@ -74,6 +82,7 @@ export default function ClassesPage() {
       name:         r.name ?? '',
       gradeLevel:   r.gradeLevel ?? '',
       academicYear: r.academicYear ?? '',
+      teacherId:    user?.id,
       updatedAt:    now,
       syncStatus:   'pending' as const,
     })))
@@ -145,6 +154,9 @@ export default function ClassesPage() {
       {modal.open && (
         <ClassModal
           cls={modal.cls}
+          teachers={teachers}
+          isAdmin={user?.role === 'admin'}
+          currentUserId={user?.id ?? ''}
           onSave={handleSave}
           onDelete={modal.cls ? handleDelete : undefined}
           onClose={() => setModal({ open: false, cls: null })}

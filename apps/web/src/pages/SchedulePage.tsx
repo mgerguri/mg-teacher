@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { localDb, LocalSchedule, LocalClass, LocalSubject, LocalTeacher } from '../lib/local-db'
 import { useSync } from '../context/SyncContext'
 import { useAuth } from '../context/AuthContext'
+import { scopeClasses, scopeSubjects, scopeByClassId, classIdSet } from '../lib/scope'
 import WeeklyGrid, { Perspective } from '../components/schedule/WeeklyGrid'
 import ScheduleList from '../components/schedule/ScheduleList'
 import ScheduleEntryModal from '../components/schedule/ScheduleEntryModal'
@@ -17,7 +18,7 @@ interface ModalState {
 
 // ── Hooks ──────────────────────────────────────────────────────────────────────
 
-function useLocalData() {
+function useLocalData(user: ReturnType<typeof useAuth>['user']) {
   const [schedules, setSchedules] = useState<LocalSchedule[]>([])
   const [classes,   setClasses]   = useState<LocalClass[]>([])
   const [subjects,  setSubjects]  = useState<LocalSubject[]>([])
@@ -30,11 +31,12 @@ function useLocalData() {
       localDb.subjects.filter(s => !s.deletedAt).toArray(),
       localDb.teachers.toArray(),
     ])
-    setSchedules(sc)
-    setClasses(cl)
-    setSubjects(su)
+    const ownClasses = scopeClasses(cl, user)
+    setSchedules(scopeByClassId(sc, user, classIdSet(ownClasses)))
+    setClasses(ownClasses)
+    setSubjects(scopeSubjects(su, user))
     setTeachers(te)
-  }, [])
+  }, [user])
 
   useEffect(() => { reload() }, [reload])
 
@@ -47,7 +49,7 @@ export default function SchedulePage() {
   const { user } = useAuth()
   const { sync, state: syncState } = useSync()
   const { t }    = useTranslation()
-  const { schedules, classes, subjects, teachers, reload } = useLocalData()
+  const { schedules, classes, subjects, teachers, reload } = useLocalData(user)
 
   const [view,        setView]        = useState<ViewMode>('grid')
   const [perspective, setPerspective] = useState<Perspective>('class')

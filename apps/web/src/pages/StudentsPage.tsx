@@ -3,6 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { localDb, LocalStudent, LocalClass } from '../lib/local-db'
 import { useSync } from '../context/SyncContext'
+import { useAuth } from '../context/AuthContext'
+import { scopeClasses } from '../lib/scope'
 import StudentModal, { StudentFormState } from '../components/students/StudentModal'
 import BulkImportModal from '../components/common/BulkImportModal'
 import { ColumnMap } from '../lib/spreadsheet'
@@ -32,9 +34,11 @@ export default function StudentsPage() {
   const { classId } = useParams<{ classId: string }>()
   const navigate    = useNavigate()
   const { sync }    = useSync()
+  const { user }    = useAuth()
   const { t }       = useTranslation()
 
   const [cls,       setCls]       = useState<LocalClass | null>(null)
+  const [notFound,  setNotFound]  = useState(false)
   const [classes,   setClasses]   = useState<LocalClass[]>([])
   const [students,  setStudents]  = useState<LocalStudent[]>([])
   const [search,    setSearch]    = useState('')
@@ -42,15 +46,25 @@ export default function StudentsPage() {
   const [showImport, setShowImport] = useState(false)
 
   const reload = useCallback(async () => {
-    const [allClasses, allStudents] = await Promise.all([
-      localDb.classes.filter(c => !c.deletedAt).toArray(),
-      localDb.students.filter(s => !s.deletedAt && s.classId === classId).toArray(),
-    ])
+    const allClassesRaw = await localDb.classes.filter(c => !c.deletedAt).toArray()
+    const allClasses = scopeClasses(allClassesRaw, user)
     const current = allClasses.find(c => c.id === classId) ?? null
     setCls(current)
     setClasses(allClasses)
+
+    // A classId that isn't in the caller's own scoped list (someone else's
+    // class, or a typo'd/stale URL) must not leak that class's students —
+    // this is the direct-URL path that bypasses the Classes list filtering.
+    if (!current) {
+      setNotFound(true)
+      setStudents([])
+      return
+    }
+    setNotFound(false)
+
+    const allStudents = await localDb.students.filter(s => !s.deletedAt && s.classId === classId).toArray()
     setStudents(allStudents.sort((a, b) => a.lastName.localeCompare(b.lastName)))
-  }, [classId])
+  }, [classId, user])
 
   useEffect(() => { reload() }, [reload])
 
@@ -112,6 +126,17 @@ export default function StudentsPage() {
     setShowImport(false)
     await reload()
     sync()
+  }
+
+  if (notFound) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-16 text-gray-400">
+          <p className="text-sm mb-3">{t('classes.notFound')}</p>
+          <Link to="/classes" className="text-sm text-blue-600 hover:underline">{t('common.breadcrumbClasses')}</Link>
+        </div>
+      </div>
+    )
   }
 
   return (

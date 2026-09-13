@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { localDb, LocalSubject, LocalTeacher } from '../lib/local-db'
 import { useSync } from '../context/SyncContext'
+import { useAuth } from '../context/AuthContext'
+import { scopeSubjects } from '../lib/scope'
 import SubjectModal, { SubjectFormState } from '../components/subjects/SubjectModal'
 import BulkImportModal from '../components/common/BulkImportModal'
 import { ColumnMap } from '../lib/spreadsheet'
@@ -24,6 +26,7 @@ const SUBJECT_PREVIEW_COLUMNS: { key: SubjectImportField; label: string }[] = [
 
 export default function SubjectsPage() {
   const { sync } = useSync()
+  const { user } = useAuth()
   const { t }    = useTranslation()
 
   const [subjects,  setSubjects]  = useState<LocalSubject[]>([])
@@ -37,9 +40,9 @@ export default function SubjectsPage() {
       localDb.subjects.filter(s => !s.deletedAt).toArray(),
       localDb.teachers.toArray(),
     ])
-    setSubjects(subs.sort((a, b) => a.name.localeCompare(b.name)))
+    setSubjects(scopeSubjects(subs, user).sort((a, b) => a.name.localeCompare(b.name)))
     setTeachers(tes.sort((a, b) => a.lastName.localeCompare(b.lastName)))
-  }, [])
+  }, [user])
 
   useEffect(() => { reload() }, [reload])
 
@@ -54,7 +57,6 @@ export default function SubjectsPage() {
     if (modal.subject) {
       await localDb.subjects.update(modal.subject.id, {
         ...data,
-        teacherId:  data.teacherId || undefined,
         updatedAt:  now,
         syncStatus: 'pending',
       })
@@ -64,7 +66,7 @@ export default function SubjectsPage() {
         name:        data.name,
         code:        data.code,
         description: data.description || undefined,
-        teacherId:   data.teacherId || undefined,
+        teacherId:   data.teacherId,
         updatedAt:   now,
         syncStatus:  'pending',
       })
@@ -85,13 +87,17 @@ export default function SubjectsPage() {
 
   async function handleImport(rows: Partial<Record<SubjectImportField, string>>[]) {
     const now = new Date().toISOString()
+    const isAdmin = user?.role === 'admin'
     const teacherByEmail = new Map(teachers.map(te => [te.email.toLowerCase(), te]))
     await localDb.subjects.bulkAdd(rows.map(r => ({
       id:          globalThis.crypto.randomUUID(),
       name:        r.name ?? '',
       code:        r.code ?? '',
       description: r.description || undefined,
-      teacherId:   r.teacher ? teacherByEmail.get(r.teacher.toLowerCase())?.id : undefined,
+      // Non-admins can only ever own subjects they import for themselves —
+      // ignore any "teacher" column in the file rather than letting it
+      // assign a subject to (and thus surface it under) someone else.
+      teacherId:   isAdmin ? (r.teacher ? teacherByEmail.get(r.teacher.toLowerCase())?.id : undefined) : user?.id,
       updatedAt:   now,
       syncStatus:  'pending' as const,
     })))
@@ -173,6 +179,8 @@ export default function SubjectsPage() {
         <SubjectModal
           subject={modal.subject}
           teachers={teachers}
+          isAdmin={user?.role === 'admin'}
+          currentUserId={user?.id ?? ''}
           onSave={handleSave}
           onDelete={modal.subject ? handleDelete : undefined}
           onClose={() => setModal({ open: false, subject: null })}

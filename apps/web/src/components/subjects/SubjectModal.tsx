@@ -6,18 +6,20 @@ export interface SubjectFormState {
   name:        string
   code:        string
   description: string
-  teacherId:   string
+  teacherId?:  string
 }
 
 interface Props {
   subject?:  LocalSubject | null
   teachers:  LocalTeacher[]
+  isAdmin:   boolean
+  currentUserId: string
   onSave:    (data: SubjectFormState) => void
   onDelete?: () => void
   onClose:   () => void
 }
 
-export default function SubjectModal({ subject, teachers, onSave, onDelete, onClose }: Props) {
+export default function SubjectModal({ subject, teachers, isAdmin, currentUserId, onSave, onDelete, onClose }: Props) {
   const { t }    = useTranslation()
   const isEdit   = !!subject
 
@@ -44,7 +46,16 @@ export default function SubjectModal({ subject, teachers, onSave, onDelete, onCl
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!form.name.trim()) return
-    onSave(form)
+    const { teacherId, ...rest } = form
+    if (isAdmin) {
+      onSave({ ...rest, teacherId: teacherId || undefined })
+    } else if (isEdit) {
+      // Non-admins can't reassign ownership — omit teacherId entirely so
+      // update() leaves the existing owner untouched.
+      onSave(rest)
+    } else {
+      onSave({ ...rest, teacherId: currentUserId })
+    }
   }
 
   return (
@@ -69,7 +80,7 @@ export default function SubjectModal({ subject, teachers, onSave, onDelete, onCl
                 className="w-full h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            <div>
+            <div className={isAdmin ? '' : 'col-span-2'}>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('subjectModal.code')}</label>
               <input
                 value={form.code}
@@ -78,21 +89,23 @@ export default function SubjectModal({ subject, teachers, onSave, onDelete, onCl
                 className="w-full h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('subjectModal.teacher')}</label>
-              <select
-                value={form.teacherId}
-                onChange={e => set('teacherId', e.target.value)}
-                className="w-full h-9 px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">{t('subjectModal.noTeacher')}</option>
-                {teachers.map(te => (
-                  <option key={te.id} value={te.id}>
-                    {te.firstName} {te.lastName}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {isAdmin && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('subjectModal.teacher')}</label>
+                <select
+                  value={form.teacherId}
+                  onChange={e => set('teacherId', e.target.value)}
+                  className="w-full h-9 px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">{t('subjectModal.noTeacher')}</option>
+                  {teachers.map(te => (
+                    <option key={te.id} value={te.id}>
+                      {te.firstName} {te.lastName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           <div>

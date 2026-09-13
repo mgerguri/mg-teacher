@@ -63,6 +63,7 @@
     "importTitle": "Import classes",
     "importColumnsHint": "Columns: name, gradeLevel, academicYear",
     "noClasses": "No classes yet. Create your first one.",
+    "notFound": "That class doesn't exist or isn't yours to view.",
     "editClass": "Edit class",
     "student_one": "student",
     "student_other": "students"
@@ -75,6 +76,9 @@
     "gradeLevel": "Grade level",
     "gradeLevelPlaceholder": "e.g. Grade 10",
     "academicYear": "Academic year",
+    "owner": "Owner",
+    "unassigned": "Unassigned (admin-only)",
+    "ownerHint": "Only the owning teacher (and admins) can see this class and its students, grades, attendance, and plans.",
     "delete": "Delete",
     "cancel": "Cancel",
     "save": "Save",
@@ -153,6 +157,7 @@
     "progressReport": "Progress Report",
     "downloadReport": "Download report",
     "reportError": "Couldn't save the report. Check that the destination folder is writable and try again.",
+    "notFound": "That student doesn't exist or isn't yours to view.",
     "conductTitle": "Conduct notes",
     "contactLogTitle": "Parent contact log"
   },

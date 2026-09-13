@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { localDb } from '../lib/local-db'
 import { useAuth } from '../context/AuthContext'
+import { scopeClasses, scopeSubjects, scopeByClassId, classIdSet } from '../lib/scope'
 
 interface Stats {
   students:   number
@@ -40,7 +41,7 @@ export default function DashboardPage() {
   useEffect(() => {
     let cancelled = false
     async function load() {
-      const [students, classes, subjects, schedules, grades, attendances] = await Promise.all([
+      const [studentsRaw, classesRaw, subjectsRaw, schedulesRaw, gradesRaw, attendancesRaw] = await Promise.all([
         localDb.students.filter(s => !s.deletedAt).toArray(),
         localDb.classes.filter(c => !c.deletedAt).toArray(),
         localDb.subjects.filter(s => !s.deletedAt).toArray(),
@@ -48,6 +49,14 @@ export default function DashboardPage() {
         localDb.grades.filter(g => !g.deletedAt).toArray(),
         localDb.attendances.filter(a => !a.deletedAt).toArray(),
       ])
+
+      const classes    = scopeClasses(classesRaw, user)
+      const ownClassIds = classIdSet(classes)
+      const subjects    = scopeSubjects(subjectsRaw, user)
+      const students    = scopeByClassId(studentsRaw, user, ownClassIds)
+      const schedules   = scopeByClassId(schedulesRaw, user, ownClassIds)
+      const grades      = scopeByClassId(gradesRaw, user, ownClassIds)
+      const attendances = scopeByClassId(attendancesRaw, user, ownClassIds)
 
       const subjectMap = new Map(subjects.map(s => [s.id, s.name]))
       const classMap   = new Map(classes.map(c => [c.id, c.name]))
@@ -106,7 +115,7 @@ export default function DashboardPage() {
     }
     load()
     return () => { cancelled = true }
-  }, [t])
+  }, [t, user])
 
   return (
     <div className="p-6 max-w-4xl mx-auto">

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { localDb, LocalClass, LocalStudent, LocalSubject, LocalGrade } from '../lib/local-db'
 import { useSync } from '../context/SyncContext'
 import { useAuth } from '../context/AuthContext'
+import { scopeClasses, scopeSubjects } from '../lib/scope'
 import GradesGrid from '../components/grades/GradesGrid'
 
 const SEMESTER_1 = 'Semester 1'
@@ -36,11 +37,11 @@ export default function GradesPage() {
   // Load classes on mount
   useEffect(() => {
     localDb.classes.filter(c => !c.deletedAt).toArray().then(all => {
-      const sorted = all.sort((a, b) => a.name.localeCompare(b.name))
+      const sorted = scopeClasses(all, user).sort((a, b) => a.name.localeCompare(b.name))
       setClasses(sorted)
       if (sorted.length > 0 && !classId) setClassId(sorted[0].id)
     })
-  }, [])
+  }, [user])
 
   // Reload students, subjects, and grades when class or term changes
   const reload = useCallback(async () => {
@@ -60,7 +61,7 @@ export default function GradesPage() {
 
     // Only subjects that are actually scheduled for this class
     const scheduledSubjectIds = new Set(allSchedules.map(s => s.subjectId))
-    const classSubjects = allSubjects
+    const classSubjects = scopeSubjects(allSubjects, user)
       .filter(s => scheduledSubjectIds.has(s.id))
       .sort((a, b) => a.name.localeCompare(b.name))
 
@@ -95,7 +96,7 @@ export default function GradesPage() {
     setSubjects(classSubjects)
     setGradesMap(map)
     setSuggestions(suggestionMap)
-  }, [classId, activeTerm])
+  }, [classId, activeTerm, user])
 
   useEffect(() => { reload() }, [reload])
 

@@ -1,15 +1,19 @@
 import { useState, FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { LocalClass } from '../../lib/local-db'
+import { LocalClass, LocalTeacher } from '../../lib/local-db'
 
 interface FormState {
   name: string
   gradeLevel: string
   academicYear: string
+  teacherId?: string
 }
 
 interface Props {
   cls?: LocalClass | null
+  teachers: LocalTeacher[]
+  isAdmin:  boolean
+  currentUserId: string
   onSave:   (data: FormState) => void
   onDelete?: () => void
   onClose:  () => void
@@ -21,13 +25,14 @@ const YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => {
   return `${y}/${y + 1}`
 })
 
-export default function ClassModal({ cls, onSave, onDelete, onClose }: Props) {
+export default function ClassModal({ cls, teachers, isAdmin, currentUserId, onSave, onDelete, onClose }: Props) {
   const isEdit = !!cls
   const { t }  = useTranslation()
   const [form, setForm] = useState<FormState>({
     name:         cls?.name         ?? '',
     gradeLevel:   cls?.gradeLevel   ?? '',
     academicYear: cls?.academicYear ?? YEAR_OPTIONS[1],
+    teacherId:    cls?.teacherId    ?? '',
   })
 
   function set<K extends keyof FormState>(k: K, v: string) {
@@ -36,7 +41,19 @@ export default function ClassModal({ cls, onSave, onDelete, onClose }: Props) {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    onSave(form)
+    const { teacherId, ...rest } = form
+    if (isAdmin) {
+      // Admins can leave a class unassigned (admin-only visibility) or hand
+      // it to any teacher.
+      onSave({ ...rest, teacherId: teacherId || undefined })
+    } else if (isEdit) {
+      // Non-admins can't reassign ownership — omit teacherId entirely so
+      // update() leaves the existing owner untouched.
+      onSave(rest)
+    } else {
+      // A teacher creating their own class always owns it.
+      onSave({ ...rest, teacherId: currentUserId })
+    }
   }
 
   return (
@@ -82,6 +99,23 @@ export default function ClassModal({ cls, onSave, onDelete, onClose }: Props) {
               {YEAR_OPTIONS.map(y => <option key={y} value={y}>{y}</option>)}
             </select>
           </div>
+
+          {isAdmin && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('classModal.owner')}</label>
+              <select
+                value={form.teacherId}
+                onChange={e => set('teacherId', e.target.value)}
+                className="w-full h-9 px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">{t('classModal.unassigned')}</option>
+                {teachers.map(te => (
+                  <option key={te.id} value={te.id}>{te.firstName} {te.lastName}</option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-400 mt-1">{t('classModal.ownerHint')}</p>
+            </div>
+          )}
 
           <div className="flex gap-2 pt-2">
             {isEdit && onDelete && (
